@@ -1,0 +1,38 @@
+In the last several years, there has been a big
+boom in the field of AI, and particularly in a subset called
+deep learning. The models used in deep learning are often
+relatively computationally expensive and problematic to execute
+in real-time in environments with computational and energetic
+constraints. In order to do so, specialized hardware, so-called
+AI Accelerators are often utilized. The term AI Accelerators
+encompass a wide variety of different devices using different
+technologies. This work surveys a market and introduces an
+overview of such accelerators for a network’s edge constrained
+by electrical energy.
+IV. CONCLUSION AND FUTURE WORK
+In this article, we have provided a brief overview of dif-
+ferent commercially available Edge AI accelerators. We see a huge variety of devices based on different chips, running
+different operating systems, and utilizing different AI frame-
+works/runtimes. While manufacturers of all of the devices
+mentioned above were able to specify the theoretical max
+performance of the devices, usually, they were not able to
+specify the power draw of the SBC. It is hard to make even an
+educated guess on which edge devices should be used for the
+specific deployment in such an environment. It is even harder
+when we consider framework-specific optimizations. Another
+question is the devices’ limits, for example: Are all the devices
+able to run 3D convolutional networks? If not, is it due to the
+intrinsic limitations of the chip design or due to the lack of
+computing power? We do not know the answer to any of those
+questions now.
+We believe that there is a need to examine these devices
+further and preferably create some kind of guidelines on
+how, when, and where to deploy AI applications to achieve
+maximum efficiency and low costs. In the process, it is
+also necessary to introduce a more objective and less naive
+division than only boards/sticks as the board category is still
+vast. In order to do so, it is needed to compare them and
+preferably create some curated benchmark that would be able
+to encompass a significant portion of such devices. This,
+however, will mean incorporating a wide variety of different
+frameworks and runtimes.

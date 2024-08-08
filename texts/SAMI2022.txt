@@ -1,0 +1,846 @@
+Brief overview of Edge AI accelerators for
+energy-constrained edge
+Ladislav Pomˇ
+s´
+ar, Alexander Brecko, Iveta Zolotov´
+a
+Department of Cybernetics and Artificial Intelligence
+Technical University of Koˇ
+sice
+Koˇ
+sice, Slovakia
+0000-0002-0408-4657, 0000-0002-9040-9912, 0000-0002-2816-2306
+Abstract—In the last several years, there has been a big
+boom in the field of AI, and particularly in a subset called
+deep learning. The models used in deep learning are often
+relatively computationally expensive and problematic to execute
+in real-time in environments with computational and energetic
+constraints. In order to do so, specialized hardware, so-called
+AI Accelerators are often utilized. The term AI Accelerators
+encompass a wide variety of different devices using different
+technologies. This work surveys a market and introduces an
+overview of such accelerators for a network’s edge constrained
+by electrical energy.
+Index Terms—Edge AI accelerator, Edge AI, AI accelerator,
+Edge computing
+I. INTRODUCTION
+The idea of accelerating artificial intelligence (AI) algo-
+rithms via hardware means has been around for a while.
+First AI accelerators have been around since at least the
+early 1990s when Intel introduced ETANN 80170NX, and
+Sackinger et al. [1] introduced ANNA as an accelerator for
+character recognition. Since the AI accelerators have taken dif-
+ferent forms of hardware, spanning from application-specific
+integrated circuits (ASICs), Field-programmable gate arrays
+(FPGAs) through Digital signal processors (DSPs) to Graphics
+processing units (GPUs). One of the biggest booms of AI,
+particularly deep learning, came thanks to the GPU-based
+hardware acceleration via NVIDIA CUDA. Nowadays, there
+is a wide variety of AI accelerators in different form factors,
+prices, or performance tiers.
+Edge computing is an emerging paradigm that aims to
+bring computations closer to the network’s edge, where data
+originates. There are several reasons for its adoption, such
+as the ever-increasing volume of data and increasing network
+traffic requirements [2]. The definition of edge computing is
+not standardized, and since its modern inception [3] in 2009,
+there have been several proposed definitions. We will refer to
+the definition by Shi, and Dustdar [4]: ”Edge computing refers
+to the enabling technologies that allow computation to be
+performed at the network edge so that computing happens near
+data sources. It works on both downstream data on behalf of
+cloud services and upstream data on behalf of IoT services. An
+edge device is any computing or networking resource residing
+between data sources and cloud-based data centres. ”
+Therefore edge devices lie in-between the data sources and
+the cloud. Depending on the architecture, edge devices can
+have different purposes, such as aggregating the data, and thus
+limiting the data flowing to the cloud, or providing AI on edge
+and fully taking over some of the functionalities back from
+the cloud, such as image recognition or localization. However,
+most of the common edge devices, such as Raspberry Pi or
+Arduino, are not capable of running modern AI algorithms
+onboard with a reasonable framerate. To address this problem,
+in the last several years, different brands introduced several
+devices that combine the characteristics of both edge devices
+and AI accelerators. For the purpose of this survey, we will
+call them Edge AI Accelerator, as we empathize their usage
+on edge.
+II. RELATED WORK
+Reuther et al. [5] introduced a survey on Machine Learn-
+ing Accelerators. They created a comprehensive schema that
+highlights the power/performance tradeoff and identifies dif-
+ferent categories of devices - very low power, embedded,
+autonomous, data centre chips and cards and data centre sys-
+tems. In this schema, devices surveyed in our work would fall
+within the first three categories. However, their survey included
+many experimental processors without concrete, commercially
+available implementation.
+Murshed et al. [6] also provide a very brief overview of
+devices, their basic specs and applications.
+Available devices are often mentioned in surveys (such as
+Chang et al. [7]), but we could not find a comprehensive survey
+in the area.
+III. SURVEY
+A. Methodics and inclusion criteria
+As we expected the devices to be commercially available,
+we have surveyed the biggest electronics retailers and single-
+board computers (SBCs) manufacturers. The inclusion criteria
+for devices were:
+• Commercial availability - The device must have been
+properly released and sold. Concepts or custom proto-
+types were not included. As the coronavirus crisis has also
+caused a general chip shortage, we have also included
+currently unavailable devices, as it was hard to distinguish
+devices that have been beyond the end of life and devices
+suffering from the shortage.
+SAMI 2022 • IEEE 20th Jubilee World Symposium on Applied Machine Intelligence and Informatics • March 2-5, 2022 • Poprad, Slovakia
+978-1-6654-9704-6/22/$31.00 ©2022 IEEE
+000461
+2022 IEEE 20th Jubilee World Symposium on Applied Machine Intelligence and Informatics (SAMI) | 978-1-6654-9704-6/22/$31.00 ©2022 IEEE | DOI: 10.1109/SAMI54271.2022.9780669
+• Power constraints - We have included devices with up
+to 40W TDP.
+• Presence of specialized chip - We have only included
+devices that include specialized hardware for AI acceler-
+ation
+As some devices cannot operate standalone, and some that
+can, we have decided to further divide the devices into:
+• Boards - Devices that encompass single board computers
+and microcontrollers. They are able to function stan-
+dalone
+• Sticks - Devices that are used via the USB port of another
+computer/SBC, thus cannot function standalone. Their
+form factor resembles USB stick
+Some of the accelerators are available in both form fac-
+tors and will be included in both sections. As some of the
+boards/sticks do not have official numbers on power draw,
+we will calculate it using the maximal possible power draw
+that could be achievable via the connected adaptor. Some of
+the surveyed boards (such as BeagleBone AI) lacked official
+performance numbers and were excluded from the overview.
+We also excluded devices directly tied to a single device, such
+as a camera (e.g. Qualcomm Vision AI Development Kit and
+such).
+B. Boards
+1) NVIDIA Jetson Family: NVIDIA Jetson family was
+initially introduced by NVIDIA with TK1 [8] in 2014. The
+family currently consists of 4 SBCs [9] designed to deliver
+different price/performance/power draw ratios at the edge of
+the network. All SBCs feature ARM CPU. In order to acceler-
+ate the AI performance, NVIDIA GPU with CUDA support is
+utilized. While some of the devices in this survey will need to
+support the framework or model specifically, the Jetson family
+only requires the framework’s support for CUDA. This allows
+for considerable flexibility when developing and deploying AI
+to the edge. This family is also the only one, where it is
+realistic to even train models on edge. Trained models then
+can also be further be optimized with TensorRT to allow even
+faster inference. The family also provides flexibility in the
+power department - all of the devices allow for 2 or 3 different
+power modes. All of the SBCs are also buyable as modules.
+NVIDIA Jetson Nano [10] is the smallest member of the
+family. With 5/10W power modes, it can deliver up to 472
+giga floating point operations per second (GFLOPS). There
+are 2 and 4 GB of RAM versions of this board. With the price
+starting at around 99$, Nano offers an inexpensive deployment
+platform.
+NVIDIA Jetson TX2 Series [11] offer 4 different config-
+urations - TX2 NX, TX2 4GB, TX2 and T2Xi. Delivering
+up/to 1.33/1.26 TFLOPs with 4/8 GB of RAM, with 7.5/15W
+or 10/20W power modes, respectively, the TX2 series is an
+older member meant to create a bridge between entry and
+mainstream segment.
+With up to 21 Tera Operations Per Second (TOPS) and
+3 power modes - 10/15/20W, Jetson Xavier NX [12] is the
+mainstream member of the Jetson family. The AI performance
+is accelerated via the 384 core GPU of Volta architecture,
+including 48 Tensor cores. Aside from the GPU, Xavier NX
+also includes a 7-way VLIW Vision processor to accelerate
+machine vision tasks.
+Jetson AGX Xavier [13] is meant as a platform for
+autonomous vehicles and top of the Jetson line. With up to
+32 TOPS for classic and 30 TOPS for industrial version, it is
+enough to launch models such as Inception V4 with 299x299
+input image with framerate of over 500 FPS. The AI perfor-
+mance is provided by 512 core GPU of Volta generation, with
+64 Tensor cores and 2 x aforementioned WLIV processors.
+Both classic and industrial versions feature 32 GB of RAM
+and allow for 10/15/30W and 20/40W power modes.
+TABLE I
+OVERVIEW OF CURRENT NVIDIA JETSON LINEUP.
+Nano
+TX2
+Xavier NX
+AGX Xavier
+CPU
+4
+Core
+Cortex-A57
+2 Core Den-
+ver 2 and 4
+Core Cortex-
+A57
+6
+core
+NVIDIA
+Carmel ARM
+8
+core
+NVIDIA
+Carmel Arm
+GPU
+128-core
+Maxwell
+256-core Pas-
+cal
+384
+Volta
++
+48
+tensor
+cores
+512
+core
+Volta
++
+64
+tensor cores
+Memory
+4
+GB
+LPDDR4
+8GB
+LPDDR4
+8GB
+LPDDR4x
+32GB
+LPDDR4x
+Storage
+16
+GB
+eMMC 5.1
+32
+GB
+eMMC 5.1
+16
+GB
+eMMC 5.1
+32
+GB
+eMMC 5.1
+Power
+Modes
+5/10 W
+7.5/15W
+10/15W
+10/15/30W
+Video
+Encode
+up to 4Kp30
+up to 4Kp60
+up
+to
+2x
+4Kp30
+up
+to
+4x
+4Kp60
+Video
+Decode
+up to 4Kp60
+up
+to
+2x
+4Kp60
+up
+to
+2x
+4Kp60
+up
+to
+2x
+8Kp30
+Ethernet
+10/100/1000
+10/100/1000
++ Wi-Fi
+10/100/1000
+AI
+Perfor-
+mance
+472 GFLOPS
+(FP16)
+1.33 TFLOPS
+(FP16)
+21
+TOPS
+(int8)
+32
+TOPS
+(int8)
+2) Huawei Atlas Family: Powered by inhouse made pro-
+cessors, the Huawei Atlas family was unveiled back in 2018
+[14]. The family consists of 200, 300, 500, 800 and 900
+series with different purposes and aims. We believe that the
+most suitable lines for edge deployment are the 200, which
+aims to be AI Accelerator Module, and the 500 series, which
+aims to power the intelligent edge. The 200 series offers
+Atlas 200 AI Accelerator Module, and Atlas 200 DK AI
+Developer Kit [15], both offering in-house built Huawei
+Ascend 310 AI processor, capable of up to 22 TOPS INT8
+performance. The power consumption for the developer kit is
+around 20W; for the module, it is 5.5W/8W for the 4 GB/8
+GB RAM version. The 500 series offers Atlas 500 AI Edge
+Station [16], which offers more connectivity and resistance
+to environmental factors than the developer kit. Ascend AI
+processors should support both Tensorflow (TF) and PyTorch
+(PT). We could not find official pricing for the developer kit,
+but third party resellers list it for around 1250 euro after
+conversion.
+L. 
+PomÆr 
+et al.  Brief 
+overview 
+of 
+Edge 
+AI 
+accelerators 
+for 
+Energy-constrained 
+Edge
+000462
+3) Coral Family: Google Coral family consists of 2 boards
+- Google Coral Dev Board [17] and Google Dev Board
+Mini [18] and one stick. AI acceleration in all three is based
+on the same Edge Tensor Processing Unit (Edge TPU) co-
+processor. This specialized ASIC, designed by Google, allows
+for inference of selected TF Lite models and to transfer-learn
+some pre-trained computer vision models. It is not possible
+to train models from scratch. Edge TPU allows for up to 2
+TOPS (int8) of AI performance per watt, up to power draw
+of 2W (4 TOPS peak performance). Edge TPU is also sold as
+an accelerator module/card.
+Both, Board and Board Mini, offer the same AI perfor-
+mance, but there are some differences. Board offers 1/4 GB
+RAM configurations, while Board Mini features 2 GB of
+RAM. Board offers more peripherals, while Board offers
+newer versions of Wi-Fi and BT. On the energy side, Board
+consumes up to 15W and Board Mini up to 10W. Both devices
+support Mendel Linux.
+4) Bearkey: Chinese chipmaker Rockchip has released sev-
+eral SoCs featuring NPUs. Most utilized such SoC is the
+RK3399Pro chip.This chip does include a neural processing
+unit (NPU) which can deliver up to 3 TOPS (int8), 300
+Giga Operations Per Second (GOPS) (int16) or 100 GFLOPS
+(FP16). NPU support Caffe, MxNet and TF models directly
+and most others after conversion. This should be true for all
+Rockchip SoCs, even if used by third parties.
+Bearkey (also called Beiqi) has been using Rockchip chips
+and collaborating with Linaro and 96Boards since at least
+2019. This cooperation resulted in several SBCs, that are
+highlighted in Table II.
+TB96-AI
+[19]
+is
+a
+SBC
+that
+uses
+afforementioned
+RK3399Pro and is very close to reference RK3399Pro AI
+Development Kit (thus not included). This board feature 2
+possible RAM configurations - 3 GB (CPU 2GB + 1GB NPU)
+or 8GB (CPU 4GB + 4GB NPU). The board allows running
+Android and Fedora OSs.
+TB-96AI-3568CE [20] was unveiled in February 2021.
+It Features 22nm RK3568 SoC that features NPU with the
+performance of 0.8 TOPS. The power draw of the board is 24
+W, and it supports both Debian and Android 11.
+TB-96AIoT-1126CE [21] is another board meant to be
+used for AI and IoT applications. It features 14nm Rockchip
+RV1126 SoC with NPU capable of 2 TOPS and is powered
+by Debian OS. The maximal power draw is 24 W.
+5) Bitmain: Bitmain is another Chinese manufacturer that
+collaborated with 96Boards. Their platform currently features
+only a single SBC, module and stick. The SBC is called
+Bitmain Sophon Edge Developer Board (BSEDB) [22] and
+is powered by Sophon BM1880 ASIC, which can provide up
+to 1 TOPS or 2 TOPS with Winograd acceleration. It also
+features 1 GB of RAM. The platform should support inference
+for TF, Open Neural Network Exchange (ONNX), PT and
+Caffe models after conversion through the BMNet compiler.
+The total power draw of the SBC should be around 24W, which
+makes it power costly compared to other, faster solutions.
+TABLE II
+OVERVIEW OF BEARKEY’S LINEUP.
+TB96-AI
+TB-96AI-
+3586CE
+TB-96AIot-
+1126CE
+CPU
+2 Core A72 +
+4 Core A53
+4 Core A55
+4x Cortex A7
++
+RISC-V
+MPU
+GPU
+Mali-T860
+Mali-G52
+2D
+Graphics
+Acceleration
+Engine
+Memory
+3GB
+LP-
+DRR3(CPU
+2GB + NPU
+1GB) / 8GB
+LPDDR3(CPU
+4GB + NPU
+4GB)
+2 GB DDR3
+1GB DDR3
+Storage
+16/32/64/128
+GB eMMC
+16
+GB
+eMMC
+16
+GB
+eMMC
+Power
+Draw
+<20 W
+<24W
+<24W
+Video
+Decode
+4K
+VP9,
+4K
+10bits
+H265/H264
+-
+-
+Ethernet
+10/100/1000
+2x
+10/100/1000
++ Wi-Fi
+10/100/1000
++ Wi-Fi
+AI
+Perfor-
+mance
+3 TOPS (int8)
+0.8
+TOPS
+(int8)
+2 TOPS (int8)
+6) MYIR FZ: MYIR FZ3 Kit [23] is a SBC featuring
+Xilinx Zynq UltraScale+ Multiprocessor System on a Chip
+(MPSoC) ZU3EG alongside 4GB RAM and 8GB eMMC.
+PetaLinux OS powers the board and AI capabilities can be
+utilized via the Xilinx Vitis AI platform and PaddlePaddle
+deep learning framework. Vitis also can use Caffe, PT and TF
+models. With a peak performance of 1.2 TOPS (int8), the idle
+power consumption of 5W and peak consumption of up to
+24W, FZ3 Kit is one of the worst-performing SBC regarding
+power/performance ratio. MYIR also provides better-equipped
+boards with better Xilinx processors and an FZ5 kit, but those
+fall outside of the scope of this overview.
+7) Ultra96-V2: Ultra96-v2 [24], the successor of popular
+Ultra96, is another ZU3EG powered SBC. The biggest dif-
+ference between this board and the MYIR FZ3 kit lies in
+the RAM and storage capacities - 2GB of RAM and 16 GB
+microSD card, and Wi-Fi 5/BT 5.0 compatibility. Otherwise,
+AI performance should be on par.
+8) Dragonboard platform: Qualcomm has been using the
+so-called Hexagon DSP for neural network acceleration in
+smartphones since at least 2016. Thundercomm utilized these
+chips to create the Dragonboard 845c board, which is
+featured in Qualcomm Robotics RB3 [25]. This board is built
+around a Qualcomm SDA845 processor, which features 4 GB
+of RAM, Adreno 630 GPU and Hexagon 685 DSP. The DSP
+itself is capable of delivering 1.2 TOPS (int8)@1W, for a total
+of 3 TOPS when using CPU, GPU and DSP together. The
+board requires 25W rated PSU and is buyable only as a part
+of Robotics RB3.
+Another Thudercomm developed board is called Qualcomm
+SAMI 2022 • IEEE 20th Jubilee World Symposium on Applied Machine Intelligence and Informatics • March 2-5, 2022 • Poprad, Slovakia
+000463
+Robotics RB 5 Development platform [26]. It is centred
+around Qualcomm QRB5165 SoC with Octa-core CPU and
+Adreno 650 GPU. The AI acceleration part is done via a com-
+bination of Hexagon DSP and Qualcomm Neural Processing
+Unit (NPU230) for a total of 15 TOPS. The total peak draw
+should not exceed 30W.
+There are another two Dragonboard boards, made by Arrow,
+410c and 820c. While the 410c does not seem to feature
+dedicated DSP, we could not locate any official performance
+measures for the Hexagon 680 DSP inside the 820c and
+therefore did not include them.
+9) HiKey: HiKey970 [27] was introduced by Huawei and
+Linaro in 2018, based on 8-core HiSilicone Kirin 970 SoC.
+This SoC features a dedicated NPU capable of 1.92 TFLOPS
+(FP16) peak performance alongside 6 GB of RAM and 64 GB
+of storage. The NPU is usable via Huawei’s HiAI platform,
+that support Huawei supplied models and models in frame-
+works such as Caffe or TF2. This whole package consumes
+up to 24 W.
+C. Sticks
+In this subsection, we introduce Edge AI Accelerators with
+form factors of sticks. For a more concise overview, please
+see Table III.
+1) Intel Neural Compute Stick family: Intel acquired a
+company called Movidius in 2016. Since then, the company
+launched two EAAs - Intel Movidius Neural Compute Stick
+and Intel Neural Compute Stick 2 (INCS2). As the original
+neural compute stick was discontinued in Q4 2019, we will
+only describe INCS2.
+Intel Neural Compute Stick 2 [28] utilizes Intel Movidius
+Myriad X Vision Processing Unit with 16 SHAVE cores and
+4GB of RAM for the acceleration of the deep neural network
+inference. To use INCS2 for inference, it is necessary to
+convert models trained in a wide range of supported deep
+learning/computer vision frameworks via Open-VINO. The
+maximal theoretical performance of INCS2 is around 4 TOPS,
+and the current MSRP are 69 dollars.
+2) Google Coral USB Accelerator: Built around the same
+Edge TPU as Coral family, the Google Coral USB Accelera-
+tor [29] is able to deliver 4 TOPS@2W. Currently, the device
+is supported on Linux, Windows and Mac and reaches the peak
+performance in an environment with an ambient temperature
+of 25 °C.
+3) Orange Pi AI Stick Lite: Orange PI AI Stick Lite
+(OPAI) [30] is equipped with a Lightspeeur SPR2801S neural
+accelerator. This accelerator should be able to achieve 2.8
+TOPS@300mW with a peak performance of 5.6 TOPS, and
+maximal power consumption of approximately 1 W. AI models
+are accelerated through the Plai framework, which supports
+both Ubuntu and Android. OPAI is portrayed in the Figure 1.
+4) Rockchip
+RK1808
+AI
+Compute
+Stick:
+Rockchip
+RK1808 AI Compute Stick (RKCS) [31] features standalone
+RK1808, NPU from RK3399Pro chip alongside 1 GB RAM
+and 8 GB of storage. Similarly, as the full RK3399Pro, RKCS
+should allow for 3 TOPS (int8). The device can act as a pure
+Fig. 1. Orange PI AI Stick Lite
+accelerator, where the device is just using its computing power
+to speed up the inference, or as a deployment device, where
+RKCS handles the whole pre-processing, inference, and post-
+processing.
+5) Bitmain Sophon Neural Network Stick: Bitmain Sophon
+Neural Network Stick (BSNNS) [32], pictured in Figure 2.11,
+based on the same Sophon BM1880 as paragraph 2.2.1, should
+provide up to 1 TOPS (int8) or 2 TOPS (int8) with Winograd
+acceleration. We could not find official information on power
+consumption, but a typical power consumption of BM1880
+is around 2.5W, so we expect its power consumption to be
+higher. It supports the conversion of TF, ONNX, PyTorch,
+and Caffe models via the BMNet compiler. However, based
+on the documentation, BSNNS requires an x86 host to run,
+which is disappointing as it makes it incompatible with most
+of the commonly used edge devices.
+TABLE III
+OVERVIEW OF REVIEWED USB STICK AI EDGE ACCELERATORS.
+INCS2
+GCA
+OPAI
+RKCS
+BSNNS
+CPU
+Myriad
+X VPU
+Edge
+TPU
+co-
+processor
+Lightspeeur
+SPR2801S
+Rockchip
+RK1808
+Sophon
+BM1880
+RAM
+4GB
+X
+X
+1 GB
+X
+Storage
+X
+X
+X
+8GB
+X
+Runtime
+framework
+OpenVino
+TF Lite
+PLAI
+RKNN-
+Toolkit
+BMNet
+Model
+compatibil-
+ity
+Caffe,
+MXNet,
+TF,
+Kaldi,
+ONNX
+TF
+TF,
+PyTorch,
+Caffe
+Caffe,
+TF, TF
+Lite,
+ONNX,
+Dark-
+net
+Caffe,
+ONNX,
+TF,
+Pytorch
+AI
+Perfor-
+mance
+4 TOPS
+4
+TOPS
+@2W
+2.8
+TOPS
+@300mW,
+5.6
+TOPS
+max
+3
+TOPS
+1/2
+TOPS
+Price
+69$
+60$
+20$
+86$
+79$
+IV. CONCLUSION AND FUTURE WORK
+In this article, we have provided a brief overview of dif-
+ferent commercially available Edge AI accelerators. We see
+L. 
+PomÆr 
+et al.  Brief 
+overview 
+of 
+Edge 
+AI 
+accelerators 
+for 
+Energy-constrained 
+Edge
+000464
+a huge variety of devices based on different chips, running
+different operating systems, and utilizing different AI frame-
+works/runtimes. While manufacturers of all of the devices
+mentioned above were able to specify the theoretical max
+performance of the devices, usually, they were not able to
+specify the power draw of the SBC. It is hard to make even an
+educated guess on which edge devices should be used for the
+specific deployment in such an environment. It is even harder
+when we consider framework-specific optimizations. Another
+question is the devices’ limits, for example: Are all the devices
+able to run 3D convolutional networks? If not, is it due to the
+intrinsic limitations of the chip design or due to the lack of
+computing power? We do not know the answer to any of those
+questions now.
+We believe that there is a need to examine these devices
+further and preferably create some kind of guidelines on
+how, when, and where to deploy AI applications to achieve
+maximum efficiency and low costs. In the process, it is
+also necessary to introduce a more objective and less naive
+division than only boards/sticks as the board category is still
+vast. In order to do so, it is needed to compare them and
+preferably create some curated benchmark that would be able
+to encompass a significant portion of such devices. This,
+however, will mean incorporating a wide variety of different
+frameworks and runtimes.
+ACKNOWLEDGMENT
+This work was supported by the APVV grant ENISaC -
+Edge-eNabled Intelligent Sensing and Computing (APVV-20-
+0247, 90%) and ACNE - Accelerating computations on the
+network’s edge (FEI-2021-81, 10%).
+REFERENCES
+[1] E. Sackinger, B. Boser, J. Bromley, Y. LeCun, and L. Jackel, “Ap-
+plication of the anna neural network chip to high-speed character
+recognition,” IEEE Transactions on Neural Networks, vol. 3, no. 3, pp.
+498–505, 1992.
+[2] A. Pekar, J. Mocnej, W. K. G. Seah, and I. Zolotova, “Application
+domain-based overview of iot network traffic characteristics,” ACM
+Comput.
+Surv.,
+vol.
+53,
+no.
+4,
+Jul.
+2020.
+[Online].
+Available:
+https://doi.org/10.1145/3399669
+[3] M. Satyanarayanan, P. Bahl, R. Caceres, and N. Davies, “The case for
+vm-based cloudlets in mobile computing,” IEEE pervasive Computing,
+vol. 8, no. 4, pp. 14–23, 2009.
+[4] W. Shi and S. Dustdar, “The promise of edge computing,” Computer,
+vol. 49, no. 5, pp. 78–81, 2016.
+[5] A. Reuther, P. Michaleas, M. Jones, V. Gadepally, S. Samsi, and
+J. Kepner, “Survey of machine learning accelerators,” in 2020 IEEE
+High Performance Extreme Computing Conference (HPEC).
+IEEE,
+2020, pp. 1–12.
+[6] M. Murshed, C. Murphy, D. Hou, N. Khan, G. Ananthanarayanan, and
+F. Hussain, “Machine learning at the network edge: A survey,” arXiv
+preprint arXiv:1908.00080, 2019.
+[7] Z. Chang, S. Liu, X. Xiong, Z. Cai, and G. Tu, “A survey of recent
+advances in edge-computing-powered artificial intelligence of things,”
+IEEE Internet of Things Journal, 2021.
+[8] “Jetson tk1: Mobile embedded supercomputer takes cuda everywhere
+—
+nvidia
+developer
+blog,”
+https://developer.nvidia.com/blog/
+jetson-tk1-mobile-embedded-supercomputer-cuda-everywhere/,
+(Accessed on 10/28/2021).
+[9] “Jetson modules — nvidia developer,” https://developer.nvidia.com/
+embedded/jetson-modules, (Accessed on 10/28/2021).
+[10] “Jetson
+Nano
+Developer
+Kit,”
+[Online;
+accessed
+27.
+Dec.
+2020].
+[Online].
+Available:
+https://developer.nvidia.com/embedded/
+jetson-nano-developer-kit
+[11] “NVIDIA Jetson TX2: High Performance AI at the Edge,” [Online;
+accessed 27. Dec. 2020]. [Online]. Available: https://www.nvidia.com/
+en-us/autonomous-machines/embedded-systems/jetson-tx2
+[12] “NVIDIA Jetson Xavier NX for Embedded & Edge Systems,” [Online;
+accessed 27. Dec. 2020]. [Online]. Available: https://www.nvidia.com/
+en-us/autonomous-machines/embedded-systems/jetson-xavier-nx
+[13] “Deploy
+AI-Powered
+Autonomous
+Machines
+at
+Scale,”
+[Online;
+accessed 27. Dec. 2020]. [Online]. Available: https://www.nvidia.com/
+en-us/autonomous-machines/embedded-systems/jetson-agx-xavier
+[14] “Huawei Launches the Atlas Intelligent Computing Platform to Fuel an
+AI Future with Supreme Compute Power,” Oct 2018, [Online; accessed
+28. Oct. 2021]. [Online]. Available: https://www.huawei.com/en/news/
+2018/10/atlas-intelligent-computing-platform
+[15] “Atlas 200 DK AI Developer Kit | Huawei Global,” [Online; accessed
+28. Oct. 2021]. [Online]. Available: https://e.huawei.com/en/products/
+cloud-computing-dc/atlas/atlas-200
+[16] “Atlas 500 AI Edge Station | Huawei Global,” [Online; accessed
+28. Oct. 2021]. [Online]. Available: https://e.huawei.com/en/products/
+cloud-computing-dc/atlas/atlas-500
+[17] “Dev Board datasheet | Coral,” [Online; accessed 27. Dec. 2020].
+[Online]. Available: https://coral.ai/docs/dev-board/datasheet
+[18] “Dev Board Mini datasheet | Coral,” [Online; accessed 27. Dec. 2020].
+[Online]. Available: https://coral.ai/docs/dev-board-mini/datasheet
+[19] “TB-96AI,” [Online; accessed 29. Dec. 2020]. [Online]. Available:
+https://www.96boards.org/product/tb-96ai
+[20] “TB-96AI-3586CE,” Sep 2021, [Online; accessed 28. Oct. 2021].
+[Online]. Available: https://www.96boards.org/product/tb-96ai-3586ce
+[21] “TB-96AIot-1126CE,” [Online; accessed 28. Oct. 2021]. [Online].
+Available: https://www.96boards.org/product/tb-96aiot-1126ce
+[22] “Sophon Edge,” [Online; accessed 29. Dec. 2020]. [Online]. Available:
+https://www.96boards.org/product/sophon-edge
+[23] “FZ3 Card - Deep Learning Accelerator Card | Xilinx Zynq UltraScale+
+ZU3EG MPSoC-Welcome to MYIR,” [Online; accessed 30. Dec. 2020].
+[Online]. Available: http://www.myirtech.com/list.asp?id=630
+[24] “AES-ULTRA96-V2-G,”
+[Online;
+accessed
+8.
+Feb.
+2021]. [Online]. Available: https://www.avnet.com/shop/us/products/
+avnet-engineering-services/aes-ultra96-v2-g-3074457345638646173
+[25] “Qualcomm® Robotics RB3 Development Platform,” [Online; accessed
+28. Oct. 2021]. [Online]. Available: https://www.96boards.org/product/
+rb3-platform
+[26] “Qualcomm® Robotics RB5 Development Platform,” [Online; accessed
+28. Oct. 2021]. [Online]. Available: https://www.96boards.org/product/
+qualcomm-robotics-rb5
+[27] “HiKey970,” [Online; accessed 31. Dec. 2020]. [Online]. Available:
+https://www.96boards.org/product/hikey970
+[28] I. Corporation, “Intel neural compute stick 2 - product brief,” [Online;
+accessed 28. Dec. 2020]. [Online]. Available: https://software.intel.com/
+content/dam/develop/public/us/en/documents/ncs2-product-brief.pdf
+[29] “USB Accelerator datasheet | Coral,” [Online; accessed 27. Dec. 2020].
+[Online]. Available: https://coral.ai/docs/accelerator/datasheet
+[30] “Orange Pi AI Stick Lite - Orangepi,” [Online; accessed 31. Dec.
+2020]. [Online]. Available: http://www.orangepi.org/Orange%20Pi%
+20AI%20Stick%202801
+[31] “rk1808
+ai
+compute
+stick
+user
+manual
+v1.2.0,”
+[Online;
+accessed
+15.
+Jan.
+2021].
+[Online].
+Available:
+https://raw.githubusercontent.com/SeeedDocument/Bazaar
+Document/master/RK1808 AI Compute Stick User manual EN.pdf
+[32] “Neural
+Network
+Stick,”
+[Online;
+accessed
+29.
+Dec.
+2020].
+[Online].
+Available:
+https://sophon-edge.gitbook.io/project/overview/
+neural-network-stick
+SAMI 2022 • IEEE 20th Jubilee World Symposium on Applied Machine Intelligence and Informatics • March 2-5, 2022 • Poprad, Slovakia
+000465
+L. 
+PomÆr 
+et al.  Brief 
+overview 
+of 
+Edge 
+AI 
+accelerators 
+for 
+Energy-constrained 
+Edge
+000466

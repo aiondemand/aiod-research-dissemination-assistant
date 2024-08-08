@@ -1,0 +1,41 @@
+Abstract
+New technologies bring opportunities to deploy AI and machine learning to the edge of
+the network, allowing edge devices to train simple models that can then be deployed in practice.
+Federated learning (FL) is a distributed machine learning technique to create a global model by
+learning from multiple decentralized edge clients. Although FL methods offer several advantages,
+including scalability and data privacy, they also introduce some risks and drawbacks in terms of
+computational complexity in the case of heterogeneous devices. Internet of Things (IoT) devices
+may have limited computing resources, poorer connection quality, or may use different operating
+systems. This paper provides an overview of the methods used in FL with a focus on edge devices
+with limited computational resources. This paper also presents FL frameworks that are currently
+popular and that provide communication between clients and servers. In this context, various topics
+are described, which include contributions and trends in the literature. This includes basic models
+and designs of system architecture, possibilities of application in practice, privacy and security, and
+resource management. Challenges related to the computational requirements of edge devices such as
+hardware heterogeneity, communication overload or limited resources of devices are discussed.
+
+8. Conclusions
+Federated learning is a promising approach for utilizing the ever-increasing computa-
+tional power of the devices on the edge of the network and the large and diverse datasets
+to train machine learning models without compromising data privacy. Privacy is key for
+applications in healthcare or ﬁnance, as they are inherently extremely sensitive and sharing
+these data are often impossible. Before these architectures are widely used in commonplace
+applications, many research questions still need to be resolved, despite a few examples of
+FL being successfully used in production settings. FL has become a cutting-edge paradigm
+in response to the growing computational power of devices such as smartphones, wear-
+ables, and autonomous cars, as well as worries about the security of sensitive data. Due
+to the increased need for local data storage and the relocation of ML computations to end
+devices while minimizing data transfer overhead, researchers have tried to implement FL
+architectures in various domains. An overview of the FL paradigm, which is gaining popu-
+larity, is provided in this article. We focused on the most recent materials and publications,
+as we discussed FL’s fundamental architecture, communication, design, and analysis. We
+discussed the basic requirements that FL must meet, the difﬁculties involved, the potential
+Appl. Sci. 2022, 12, 9124
+29 of 36
+for deployment and use in practical applications, and the frameworks with which FL is
+compatible. We have focused on the overview of the frameworks and examined the oper-
+ating systems they supported and the potential for deployment on various edge devices.
+We discussed potential future directions for FL use in diverse IoT environments. We also
+considered the problems and difﬁculties that must be solved for edge devices that are
+resource-constrained and have limited computational power, even though the hardware
+speciﬁcations they employ are not always listed in the literature.
