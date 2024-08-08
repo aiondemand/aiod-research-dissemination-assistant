@@ -64,13 +64,15 @@ with col1:
 
 with col2:
     st.markdown("## Create your LinkedIn post preferences")
-    if uploaded_file is not None:
     
-        audience = st.selectbox("Select your audience:", ["Secondary school student", "High school student", "University teacher",
+    audience = tone = length = hashtag_preference = perspective = emoji_usage = option_1 = paper_url = None
+        
+    if uploaded_file is not None:
+        audience = st.selectbox("Select your audience:", [None, "Secondary school student", "High school student", "University teacher",
                                                           "Researcher", "Business executive", "IT professional", "Software developer",
                                                           "Entrepreneur", "Journalist", "Non-profit organization member", "General public", "Engineers"])
         english_level = st.selectbox("Select the English level:", ["Beginner", "Intermediate"])
-        tone = st.selectbox("Select the tone of the post:", ["Informal", "Inspirational", "Persuasive", "Humorous", "Neutral", "Technical",
+        tone = st.selectbox("Select the tone of the post:", [None, "Informal", "Inspirational", "Persuasive", "Humorous", "Neutral", "Technical",
                                                              "Empathetic", "Authoritative", "Friendly", "Confident", "Playful", "Personal",
                                                              "Concise", "Relatable", "Captivating", "Enthusiastic", "Optimistic", "Respectful", "Engaging"])
         length = st.selectbox("Select the length of the post:", ["Long", "Short", "Very short"])
@@ -79,17 +81,37 @@ with col2:
         emoji_usage = st.selectbox("Emoji usage:", ["Use emoticons", "Do not use emoticons"])
         
         st.write("Choose additional settings:")
-        option_1 = "Begin with Thought-Provoking Question." if st.checkbox("Begin with Thought-Provoking Question.") else ""
-
-        
+        option_1 = "Begin with Thought-Provoking Question." if st.checkbox("Begin with Thought-Provoking Question.") else None
+    
+        paper_url = st.text_input("Paste the URL to your paper here:")
+    
         if st.button("Generate Post"):
             if 'summary' in st.session_state and not st.session_state['processing']:
-                post_text = f"""
-                Can you create a LinkedIn post: summarize the text: {st.session_state['summary']}; 
-                In the post use these parameters: use {tone} tone, use {english_level} English, 
-                use {length} length of post, {emoji_usage}, targeted at {audience}, {hashtag_preference}, 
-                written from a {perspective} perspective. Do not use passive voice. Use popular terms. Use sentences with one or no conjunctions. Use words with one or two syllables where possible. {option_1}
-                """
+                post_text = "Can you create a LinkedIn post: summarize the text: " + st.session_state['summary'] + "; In post use these parameters: "
+                
+                if tone:
+                    post_text += f"use {tone} tone, "
+                if english_level:
+                    post_text += f"use {english_level} English, "
+                if length:
+                    post_text += f"use {length} length of post, "
+                if emoji_usage:
+                    post_text += f"{emoji_usage}, "
+                if audience:
+                    post_text += f"targeted at {audience}, "
+                if hashtag_preference:
+                    post_text += f"{hashtag_preference}, "
+                if perspective:
+                    post_text += f"written from a {perspective} perspective. "
+                
+                post_text += "Do not use passive voice. Use popular terms. Use sentences with one or no conjunctions. Use words with one or two syllables where possible."
+                
+                if option_1:
+                    post_text += f"{option_1} "
+                
+                if paper_url:
+                    post_text += f"Please use this URL as URL to original paper in post: {paper_url}"
+    
                 st.session_state['post_text'] = post_text
             else:
                 st.warning("Please wait until the summarization is complete before generating the post.")

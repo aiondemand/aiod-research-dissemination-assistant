@@ -5,7 +5,7 @@ max_tokens = 20
 
 def get_response(question: str) -> str:
     llm = Ollama(model="llama3")
-    modified_question = f"{question}; (Answer only: YES, NO, MAYBE YES, or MAYBE NO)"
+    modified_question = f"{question}; Answer me only: YES, NO, MAYBE YES, or MAYBE NO"
     answer = llm.invoke(modified_question)
     tokens = len(answer.split())
     #if tokens <= max_tokens and answer.strip().upper() in ["YES", "NO", "MAYBE YES", "MAYBE NO"]:
