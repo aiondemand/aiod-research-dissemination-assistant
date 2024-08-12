@@ -1,0 +1,11 @@
+# Ignore Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore Python compiled files
+__pycache__/
+*.pyc
+
+# Ignore other specific directories that might contain unnecessary files
+config_files/__pycache__/
+streamlit_app/__pycache__/
+
