@@ -12,7 +12,9 @@ promptfoo eval
 ```
 
 Afterwards, you can view the results by running 
-```promptfoo view```
+```
+promptfoo view
+```
 
 
 [PromptFoo Documentation](https://www.promptfoo.dev/docs/intro)
