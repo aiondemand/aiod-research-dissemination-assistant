@@ -1,4 +1,9 @@
-To get started, set your OPENAI_API_KEY environment variable, or other required keys for the providers you selected.
+To get started, install promptfoo locally
+
+
+```
+npx promptfoo@latest init
+```
 
 Next, edit promptfooconfig.yaml.
 
@@ -8,3 +13,7 @@ promptfoo eval
 ```
 
 Afterwards, you can view the results by running `promptfoo view`
+
+
+[PromptFoo Documentation](https://www.promptfoo.dev/docs/intro)
+
