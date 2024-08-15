@@ -2,30 +2,17 @@ import streamlit as st
 import pymupdf
 from concurrent.futures import ThreadPoolExecutor
 from langchain_community.llms import Ollama
+import time
+
 
 st. set_page_config(layout="wide")
+
+logo_path = "Main_logo_RGB_colors.png" 
+st.image(logo_path, width=150)
+
 st.title('Generate LinkedIn Post')
 
 executor = ThreadPoolExecutor(max_workers=1)
-
-def process_pdf_and_summarize(file_content):
-    pdf_document = pymupdf.open(stream=file_content, filetype="pdf")
-    text = ""
-    for page_number in range(pdf_document.page_count):
-        page = pdf_document.load_page(page_number)
-        text += page.get_text("text")
-    pdf_document.close()
-
-    from summarized_text import summarize_text
-    
-    return summarize_text(text)
-
-def async_process_pdf(file_content):
-    if 'processing_future' in st.session_state:
-        st.session_state.pop('processing_future')
-    future = executor.submit(process_pdf_and_summarize, file_content)
-    st.session_state['processing_future'] = future
-    st.session_state['processing'] = True
 
 def scroll_to_top():
     js = '''
@@ -40,6 +27,37 @@ def scroll_to_top():
     '''
     st.components.v1.html(js, height=0)
 
+
+def process_pdf_and_summarize(file_content):
+    pdf_document = pymupdf.open(stream=file_content, filetype="pdf")
+    text = ""
+    for page_number in range(pdf_document.page_count):
+        page = pdf_document.load_page(page_number)
+        text += page.get_text("text")
+    pdf_document.close()
+
+    from summarized_text import summarize_text
+
+    return summarize_text(text)
+
+def async_process_pdf(file_content):
+    future = executor.submit(process_pdf_and_summarize, file_content)
+    st.session_state['processing_future'] = future
+    st.session_state['processing'] = True
+
+@st.fragment
+def update_processing_status():
+    if 'processing' in st.session_state and st.session_state['processing'] == True:
+        future = st.session_state['processing_future']
+        if future.done():
+            summary = future.result()
+            st.session_state['processing'] = False
+            st.session_state['summary'] = summary
+            st.success("The summary of the text is completed.")
+        else:
+            st.info("Processing PDF, please wait...")
+
+
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -50,22 +68,14 @@ with col1:
         if 'last_file_info' not in st.session_state or st.session_state['last_file_info'] != file_info:
             st.session_state['last_file_info'] = file_info
             st.session_state.pop('summary', None)
+            st.session_state.pop('post_text', None)
             async_process_pdf(file_info)
-
-        if 'processing' in st.session_state:
-            future = st.session_state['processing_future']
-            if future.done():
-                summary = future.result()
-                st.session_state['processing'] = False
-                st.session_state['summary'] = summary
-                st.success("The summary of the text is completed.")
-            else:
-                st.info("Processing PDF, please wait...")
+        update_processing_status()
 
 with col2:
     st.markdown("## Create your LinkedIn post preferences")
-    
-    audience = tone = length = hashtag_preference = perspective = emoji_usage = option_1 = paper_url = None
+
+    audience = tone = length = hashtag_preference = perspective = emoji_usage = option_1 = paper_url = custom_requirements = None
         
     if uploaded_file is not None:
         audience = st.selectbox("Select your audience:", [None, "Secondary school student", "High school student", "University teacher",
@@ -84,9 +94,12 @@ with col2:
         option_1 = "Begin with Thought-Provoking Question." if st.checkbox("Begin with Thought-Provoking Question.") else None
     
         paper_url = st.text_input("Paste the URL to your paper here:")
+
+        custom_requirements = st.text_area("Enter your custom requirements here:", height=100)
+
     
         if st.button("Generate Post"):
-            if 'summary' in st.session_state and not st.session_state['processing']:
+            if 'summary' in st.session_state:
                 post_text = "Can you create a LinkedIn post: summarize the text: " + st.session_state['summary'] + "; In post use these parameters: "
                 
                 if tone:
@@ -111,10 +124,14 @@ with col2:
                 
                 if paper_url:
                     post_text += f"Please use this URL as URL to original paper in post: {paper_url}"
+                    
+                if custom_requirements:
+                    post_text += f"{custom_requirements} "
     
                 st.session_state['post_text'] = post_text
             else:
                 st.warning("Please wait until the summarization is complete before generating the post.")
+
 
 with col3:
     st.markdown("## LinkedIn post output")
@@ -123,3 +140,9 @@ with col3:
         generated_post = llm.invoke(st.session_state['post_text'])
         scroll_to_top()
         st.text_area("Generated LinkedIn Post", generated_post, height=700)
+
+        if 'summary' in st.session_state:
+            st.text_area("Summarized text", st.session_state['summary'], height=700)
+        else:
+            st.error("No summarized text available. Please ensure the text is summarized before proceeding.")
+
