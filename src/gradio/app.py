@@ -4,6 +4,7 @@ from langchain_community.llms import Ollama
 
 
 
+
 def process_pdf_and_summarize(file_content):
     # Check if the uploaded file is a PDF
     if not file_content.name.lower().endswith('.pdf'):
@@ -108,7 +109,7 @@ with gr.Blocks() as demo:
         label="Choose the narrative perspective:"
     )
     emoji_input = gr.Dropdown(
-        ["Use emoticons", "Do not use emoticons"],
+        ["Use emoticons", "Use emoticons instead of bullet points", "Do not use emoticons"],
         label="Emoji usage:"
     )
     url_input = gr.Textbox(label="Paste the URL to your paper here:")
