@@ -1,17 +1,20 @@
 import gradio as gr
 import pymupdf
 from langchain_community.llms import Ollama
+import threading
+import summarized_text
+from summarized_text import summarize_text
 
-
+reset_flag = threading.Event()
+summarized_text.reset_flag = reset_flag  # Share the reset_flag with the summarized_text module
 
 
 def process_pdf_and_summarize(file_content):
-    # Check if the uploaded file is a PDF
-    if not file_content.name.lower().endswith('.pdf'):
-        return "Error: The uploaded file is not a PDF.", None
 
     try:
-        # Attempt to open and process the PDF
+        if not file_content.name.lower().endswith('.pdf'):
+            return "Error: The uploaded file is not a PDF.", None
+
         pdf_document = pymupdf.open(file_content, filetype="pdf")
         text = ""
         for page_number in range(pdf_document.page_count):
@@ -19,11 +22,13 @@ def process_pdf_and_summarize(file_content):
             text += page.get_text("text")
         pdf_document.close()
 
-        from summarized_text import summarize_text
+        if reset_flag.is_set():
+            return "Process interrupted by user.", None
+
         return summarize_text(text), text
 
-    except Exception as e:
-        return f"Error processing PDF: {str(e)}", None
+    except Exception:
+        return f"Error processing PDF", None
 
 
 def prepare_post_text(summary, audience, english_level, tone, length, hashtag_preference, perspective, emoji_usage,
@@ -85,6 +90,8 @@ with gr.Blocks() as demo:
     pdf_input = gr.File(label="Upload your PDF Document")
     summary_output = gr.Textbox(label="Summary of the PDF", lines=6)
     summary_state = gr.State()  # To store the summary
+    reset_button = gr.Button("Reset")  # Add a reset button
+
 
     audience_input = gr.Dropdown(
         ["High school student", "University teacher",
@@ -120,10 +127,17 @@ with gr.Blocks() as demo:
     post_output = gr.Textbox(label="Generated LinkedIn Post", lines=8)
 
 
+    def reset_summarization():
+        global reset_flag
+        reset_flag.set()  # Set the reset flag to stop the process
+        return "", None, None
+
+
     def summarize_and_store(file_content):
+        global reset_flag
+        reset_flag.clear()  # Clear the reset flag before starting the new summarization process
         summary, raw_text = process_pdf_and_summarize(file_content)
         return summary, raw_text
-
 
     # Trigger summarization immediately after PDF upload
     pdf_input.change(
@@ -140,6 +154,12 @@ with gr.Blocks() as demo:
             hashtag_input, perspective_input, emoji_input, question_input, url_input, custom_requirements_input
         ],
         outputs=post_output
+    )
+
+    reset_button.click(
+        reset_summarization,
+        inputs=None,
+        outputs=[summary_output, summary_state, pdf_input]
     )
 
 # Run the interface
