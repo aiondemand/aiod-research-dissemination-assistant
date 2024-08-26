@@ -2,15 +2,16 @@ import gradio as gr
 import pymupdf
 from langchain_community.llms import Ollama
 import threading
-import summarized_text
+import asyncio
 from summarized_text import summarize_text
 
 reset_flag = threading.Event()
-summarized_text.reset_flag = reset_flag  # Share the reset_flag with the summarized_text module
+
+# This will hold the task for the long-running LLM invoke operation
+llm_task = None
 
 
 def process_pdf_and_summarize(file_content):
-
     try:
         if not file_content.name.lower().endswith('.pdf'):
             return "Error: The uploaded file is not a PDF.", None
@@ -28,7 +29,7 @@ def process_pdf_and_summarize(file_content):
         return summarize_text(text), text
 
     except Exception:
-        return f"Error processing PDF", None
+        return "Error processing PDF", None
 
 
 def prepare_post_text(summary, audience, english_level, tone, length, hashtag_preference, perspective, emoji_usage,
@@ -61,8 +62,10 @@ def prepare_post_text(summary, audience, english_level, tone, length, hashtag_pr
     return post_text
 
 
-def generate_post(summary, audience, english_level, tone, length, hashtag_preference,
+async def generate_post_async(summary, audience, english_level, tone, length, hashtag_preference,
                               perspective, emoji_usage, question_option, paper_url, custom_requirements):
+
+    global llm_task
 
     if not summary:
         return "Summarization is still in progress. Please wait and try again."
@@ -71,9 +74,24 @@ def generate_post(summary, audience, english_level, tone, length, hashtag_prefer
                                   emoji_usage, question_option, paper_url, custom_requirements)
 
     llm = Ollama(model="llama3")
-    generated_post = llm.invoke(post_text)
 
-    return generated_post
+    try:
+        loop = asyncio.get_running_loop()
+        llm_task = loop.run_in_executor(None, llm.invoke, post_text)  # Execute llm.invoke asynchronously
+        generated_post = await llm_task  # Await the result
+        return generated_post
+    except asyncio.CancelledError:
+        return "LLM processing was stopped by the user."
+    finally:
+        llm_task = None  # Reset the task when done
+
+
+def stop_llm():
+    global llm_task
+    if llm_task is not None:
+        llm_task.cancel()  # Cancel the task if it is running
+        return "LLM processing has been stopped."
+    return "No LLM processing is currently running."
 
 
 with gr.Blocks() as demo:
@@ -86,12 +104,10 @@ with gr.Blocks() as demo:
         """
     )
 
-
     pdf_input = gr.File(label="Upload your PDF Document")
     summary_output = gr.Textbox(label="Summary of the PDF", lines=6)
     summary_state = gr.State()  # To store the summary
     reset_button = gr.Button("Reset")  # Add a reset button
-
 
     audience_input = gr.Dropdown(
         ["High school student", "University teacher",
@@ -124,14 +140,13 @@ with gr.Blocks() as demo:
     custom_requirements_input = gr.Textbox(label="Enter your custom requirements here:", lines=4)
 
     submit_button = gr.Button("Generate post")
+    stop_button = gr.Button("Stop")
     post_output = gr.Textbox(label="Generated LinkedIn Post", lines=8)
-
 
     def reset_summarization():
         global reset_flag
         reset_flag.set()  # Set the reset flag to stop the process
         return "", None, None
-
 
     def summarize_and_store(file_content):
         global reset_flag
@@ -148,11 +163,18 @@ with gr.Blocks() as demo:
 
     # Generate the post only when the submit button is clicked
     submit_button.click(
-        generate_post,
+        fn=generate_post_async,
         inputs=[
             summary_state, audience_input, english_level_input, length_input,
             hashtag_input, perspective_input, emoji_input, question_input, url_input, custom_requirements_input
         ],
+        outputs=post_output,
+        api_name="generate_post"
+    )
+
+    stop_button.click(
+        fn=stop_llm,
+        inputs=None,
         outputs=post_output
     )
 
