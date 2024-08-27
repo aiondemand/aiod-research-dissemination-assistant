@@ -6,6 +6,6 @@ __pycache__/
 *.pyc
 
 # Ignore other specific directories that might contain unnecessary files
+.idea/
 config_files/__pycache__/
 streamlit_app/__pycache__/
-

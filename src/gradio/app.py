@@ -1,7 +1,9 @@
+import asyncio
+
 import gradio as gr
 import pymupdf
 from langchain_community.llms import Ollama
-import asyncio
+
 from summarized_text import summarize_text
 
 # This will hold the task for the long-running LLM invoke operation
@@ -33,8 +35,9 @@ async def process_pdf_and_summarize(file_content):
 
 
 
-def prepare_post_text(summary, audience, english_level, length, hashtag_preference, perspective, emoji_usage,
-                      question_option, paper_url, custom_requirements):
+
+def prepare_post_text(summary, audience, english_level, length, hashtag_preference, perspective,
+                      emoji_usage, question_option, paper_url, custom_requirements):
     post_text = "Can you create a LinkedIn post, summarize the text: " + summary + "; In the post use these parameters:"
 
     if english_level:
@@ -62,22 +65,24 @@ def prepare_post_text(summary, audience, english_level, length, hashtag_preferen
 
 
 async def generate_post_async(summary, audience, english_level, length, hashtag_preference,
-                              perspective, emoji_usage, question_option, paper_url, custom_requirements):
-
+                              perspective, emoji_usage, question_option, paper_url,
+                              custom_requirements):
     global llm_task
 
     if not summary:
         return "Summarization is still in progress. Please wait and try again."
 
-    post_text = prepare_post_text(summary, audience, english_level, length, hashtag_preference, perspective,
-                                  emoji_usage, question_option, paper_url, custom_requirements)
+    post_text = prepare_post_text(summary, audience, english_level, length, hashtag_preference,
+                                  perspective, emoji_usage, question_option, paper_url,
+                                  custom_requirements)
 
     llm = Ollama(model="llama3")
 
     try:
         loop = asyncio.get_running_loop()
-        llm_task = loop.run_in_executor(None, llm.invoke, post_text)  # Execute llm.invoke asynchronously
-        generated_post = await llm_task  # Await the result
+        # Execute llm.invoke asynchronously
+        llm_task = loop.run_in_executor(None, llm.invoke, post_text)
+        generated_post = await llm_task
         return generated_post
     except asyncio.CancelledError:
         return "LLM processing was stopped by the user."
@@ -130,7 +135,8 @@ with gr.Blocks() as demo:
         label="Select the length of the post:"
     )
     hashtag_input = gr.Dropdown(
-        ["No use hashtags", "Use hashtags", "Use 3 hashtags that are already existing, popular and relevant"],
+        ["No use hashtags", "Use hashtags",
+         "Use 3 hashtags that are already existing, popular and relevant"],
         label="Hashtag usage:"
     )
     perspective_input = gr.Dropdown(
@@ -153,6 +159,7 @@ with gr.Blocks() as demo:
         summary = await process_pdf_and_summarize(file_content)
         return summary, None
 
+
     # Trigger summarization immediately after PDF upload
     pdf_input.change(
         summarize_and_store,
@@ -164,8 +171,8 @@ with gr.Blocks() as demo:
     submit_button.click(
         fn=generate_post_async,
         inputs=[
-            summary_state, audience_input, english_level_input, length_input,
-            hashtag_input, perspective_input, emoji_input, question_input, url_input, custom_requirements_input
+            summary_state, audience_input, english_level_input, length_input, hashtag_input,
+            perspective_input, emoji_input, question_input, url_input, custom_requirements_input
         ],
         outputs=post_output,
         api_name="generate_post"
@@ -185,4 +192,4 @@ with gr.Blocks() as demo:
 
 # Run the interface
 if __name__ == "__main__":
-    demo.launch(allowed_paths=["./"])
+    demo.launch()

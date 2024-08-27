@@ -1,0 +1,24 @@
+services:
+  gradio-app:
+    build:
+      context: ./src/gradio
+    ports:
+      - "7860:7860"
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:latest
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d:ro
+    depends_on:
+      - gradio-app
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
