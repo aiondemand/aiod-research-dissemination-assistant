@@ -1,43 +1,42 @@
 import gradio as gr
 import pymupdf
 from langchain_community.llms import Ollama
-import threading
 import asyncio
 from summarized_text import summarize_text
 
-reset_flag = threading.Event()
-
 # This will hold the task for the long-running LLM invoke operation
 llm_task = None
+summary_task = None
 
+async def process_pdf_and_summarize(file_content):
+    global summary_task
 
-def process_pdf_and_summarize(file_content):
+    if not file_content or not getattr(file_content, 'name', '').lower().endswith('.pdf'):
+        return "Error: The uploaded file is not a PDF or no file was uploaded."
+
+    pdf_document = pymupdf.open(file_content, filetype="pdf")
+    text = ""
+    for page_number in range(pdf_document.page_count):
+        page = pdf_document.load_page(page_number)
+        text += page.get_text("text")
+    pdf_document.close()
+
     try:
-        if not file_content.name.lower().endswith('.pdf'):
-            return "Error: The uploaded file is not a PDF.", None
-
-        pdf_document = pymupdf.open(file_content, filetype="pdf")
-        text = ""
-        for page_number in range(pdf_document.page_count):
-            page = pdf_document.load_page(page_number)
-            text += page.get_text("text")
-        pdf_document.close()
-
-        if reset_flag.is_set():
-            return "Process interrupted by user.", None
-
-        return summarize_text(text), text
-
-    except Exception:
-        return "Error processing PDF", None
+        loop = asyncio.get_running_loop()
+        summary_task = loop.run_in_executor(None, summarize_text, text)
+        output_text = await summary_task
+        return output_text
+    except asyncio.CancelledError:
+        return None, "Summarization processing was stopped by the user."
+    finally:
+        summary_task = None
 
 
-def prepare_post_text(summary, audience, english_level, tone, length, hashtag_preference, perspective, emoji_usage,
+
+def prepare_post_text(summary, audience, english_level, length, hashtag_preference, perspective, emoji_usage,
                       question_option, paper_url, custom_requirements):
     post_text = "Can you create a LinkedIn post, summarize the text: " + summary + "; In the post use these parameters:"
 
-    if tone:
-        post_text += f" Use {tone} tone."
     if english_level:
         post_text += f" Use {english_level} English."
     if length:
@@ -62,7 +61,7 @@ def prepare_post_text(summary, audience, english_level, tone, length, hashtag_pr
     return post_text
 
 
-async def generate_post_async(summary, audience, english_level, tone, length, hashtag_preference,
+async def generate_post_async(summary, audience, english_level, length, hashtag_preference,
                               perspective, emoji_usage, question_option, paper_url, custom_requirements):
 
     global llm_task
@@ -70,7 +69,7 @@ async def generate_post_async(summary, audience, english_level, tone, length, ha
     if not summary:
         return "Summarization is still in progress. Please wait and try again."
 
-    post_text = prepare_post_text(summary, audience, english_level, tone, length, hashtag_preference, perspective,
+    post_text = prepare_post_text(summary, audience, english_level, length, hashtag_preference, perspective,
                                   emoji_usage, question_option, paper_url, custom_requirements)
 
     llm = Ollama(model="llama3")
@@ -92,6 +91,13 @@ def stop_llm():
         llm_task.cancel()  # Cancel the task if it is running
         return "LLM processing has been stopped."
     return "No LLM processing is currently running."
+
+def reset_summarization():
+    global summary_task
+    if summary_task is not None:
+        summary_task.cancel()  # Cancel the task if it is running
+        return "Summarization process not running.", None, None
+    return "Summarization process not running.", None, None
 
 
 with gr.Blocks() as demo:
@@ -143,16 +149,9 @@ with gr.Blocks() as demo:
     stop_button = gr.Button("Stop")
     post_output = gr.Textbox(label="Generated LinkedIn Post", lines=8)
 
-    def reset_summarization():
-        global reset_flag
-        reset_flag.set()  # Set the reset flag to stop the process
-        return "", None, None
-
-    def summarize_and_store(file_content):
-        global reset_flag
-        reset_flag.clear()  # Clear the reset flag before starting the new summarization process
-        summary, raw_text = process_pdf_and_summarize(file_content)
-        return summary, raw_text
+    async def summarize_and_store(file_content):
+        summary = await process_pdf_and_summarize(file_content)
+        return summary, None
 
     # Trigger summarization immediately after PDF upload
     pdf_input.change(
