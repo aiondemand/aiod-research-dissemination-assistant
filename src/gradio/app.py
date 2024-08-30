@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 import gradio as gr
 import pymupdf
@@ -10,11 +11,17 @@ from summarized_text import summarize_text
 llm_task = None
 summary_task = None
 
+# Setup basic logging
+logging.basicConfig(level=logging.INFO)
+
+
 async def process_pdf_and_summarize(file_content):
     global summary_task
+    logging.info("Starting PDF processing...")
 
     if not file_content or not getattr(file_content, 'name', '').lower().endswith('.pdf'):
-        return "Error: The uploaded file is not a PDF or no file was uploaded."
+        logging.error("Uploaded file is not a PDF.")
+        return "Error: The uploaded file is not a PDF or no file was uploaded.", None
 
     pdf_document = pymupdf.open(file_content, filetype="pdf")
     text = ""
@@ -26,10 +33,14 @@ async def process_pdf_and_summarize(file_content):
     try:
         loop = asyncio.get_running_loop()
         summary_task = loop.run_in_executor(None, summarize_text, text)
+        logging.info(summary_task)
         output_text = await summary_task
-        return output_text
+        logging.info(output_text)
+        logging.info("Summarization completed.")
+        return output_text, text
     except asyncio.CancelledError:
-        return None, "Summarization processing was stopped by the user."
+        logging.warning("Summarization was cancelled.")
+        return "Summarization processing was stopped by the user."
     finally:
         summary_task = None
 
@@ -100,7 +111,7 @@ def stop_llm():
 def reset_summarization():
     global summary_task
     if summary_task is not None:
-        summary_task.cancel()  # Cancel the task if it is running
+        summary_task.cancel()
         return "Summarization process not running.", None, None
     return "Summarization process not running.", None, None
 
@@ -155,9 +166,10 @@ with gr.Blocks() as demo:
     stop_button = gr.Button("Stop")
     post_output = gr.Textbox(label="Generated LinkedIn Post", lines=8)
 
+
     async def summarize_and_store(file_content):
-        summary = await process_pdf_and_summarize(file_content)
-        return summary, None
+        summary, raw_text = await process_pdf_and_summarize(file_content)
+        return summary, raw_text
 
 
     # Trigger summarization immediately after PDF upload
