@@ -2,8 +2,10 @@ services:
   gradio-app:
     build:
       context: ./src/gradio
-    ports:
-      - "7860:7860"
+    depends_on:
+      ollama:
+        condition: service_started
+    restart: always
     networks:
       - app-network
 
@@ -15,9 +17,23 @@ services:
     volumes:
       - ./nginx:/etc/nginx/conf.d:ro
     depends_on:
-      - gradio-app
+      gradio-app:
+        condition: service_started
+    restart: always
     networks:
       - app-network
+
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama:/root/.ollama
+    tty: true
+    restart: unless-stopped
+    networks:
+      - app-network
+
+volumes:
+  ollama: {}
 
 networks:
   app-network:

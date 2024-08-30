@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 import pymupdf
+from fastapi import FastAPI
 from langchain_community.llms import Ollama
 from summarized_text import summarize_text
 
@@ -13,6 +14,8 @@ summary_task = None
 
 # Setup basic logging
 logging.basicConfig(level=logging.INFO)
+
+app = FastAPI()
 
 
 async def process_pdf_and_summarize(file_content):
@@ -119,7 +122,11 @@ async def generate_post_async(
         custom_requirements,
     )
 
-    llm = Ollama(model="llama3")
+    llm = Ollama(
+        model="llama3",
+        # TODO: Remove hardcoded url
+        base_url="http://ollama:11434",
+    )
 
     try:
         loop = asyncio.get_running_loop()
@@ -247,6 +254,10 @@ with gr.Blocks() as demo:
         inputs=None,
         outputs=[summary_output, summary_state, pdf_input],
     )
+
+
+app = gr.mount_gradio_app(app, demo, path="/")
+
 
 # Run the interface
 if __name__ == "__main__":
