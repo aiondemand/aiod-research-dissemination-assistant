@@ -140,7 +140,9 @@ def stop_llm(session_id):
     if task is not None:
         task.cancel()
         return "LLM processing has been stopped."
-    return "No LLM processing is currently running."
+    else:
+        logging.info(f"No LLM process was found running for session {session_id}.")
+        return "No active LLM process to stop."
 
 
 async def reset_summarization(session_id):
@@ -236,7 +238,7 @@ with gr.Blocks() as demo:
         queue=True,
     )
 
-    submit_button.click(
+    click_event_post = submit_button.click(
         fn=generate_post_async,
         inputs=[
             summary_state,
@@ -261,6 +263,7 @@ with gr.Blocks() as demo:
         inputs=[session_id],
         outputs=post_output,
         queue=False,
+        cancels=[click_event_post],
     )
 
     reset_button.click(
@@ -270,8 +273,6 @@ with gr.Blocks() as demo:
         queue=False,
         cancels=[click_event],
     )
-
-    stop_button = gr.Button("Stop")
 
 if __name__ == "__main__":
     demo.launch(allowed_paths=["./"])
