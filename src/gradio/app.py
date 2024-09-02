@@ -14,16 +14,17 @@ summary_tasks = {}
 logging.basicConfig(level=logging.INFO)
 
 
-async def process_pdf_and_summarize(file_content, session_id):
+async def process_pdf_and_summarize(file_content, session_id) -> str:
     logging.info(f"Starting PDF processing for session {session_id}...")
 
+    # TODO: Change return of error messages by raising exception
     if not file_content:
         logging.error("No file was uploaded.")
-        return "Error: No file was uploaded.", None
+        return "Error: No file was uploaded."
 
     elif not getattr(file_content, "name", "").lower().endswith(".pdf"):
         logging.error("Uploaded file is not a PDF.")
-        return "Error: The uploaded file is not a PDF.", None
+        return "Error: The uploaded file is not a PDF."
 
     else:
         pdf_document = pymupdf.open(file_content, filetype="pdf")
@@ -39,10 +40,10 @@ async def process_pdf_and_summarize(file_content, session_id):
             summary_tasks[session_id] = summary_task
             output_text = await summary_task
             logging.info("Summarization completed.")
-            return output_text, text
+            return output_text
         except asyncio.CancelledError:
             logging.warning(f"Summarization was cancelled for session {session_id}.")
-            return "Summarization processing was stopped by the user.", None
+            return "Summarization processing was stopped by the user."
         finally:
             summary_tasks.pop(session_id, None)
 
@@ -163,11 +164,6 @@ async def reset_summarization(session_id):
         return "No active summarization process to stop."
 
 
-async def summarize_and_store(file_content, session_id):
-    summary, raw_text = await process_pdf_and_summarize(file_content, session_id)
-    return summary, raw_text
-
-
 with gr.Blocks(title="Research dissemination assistant") as demo:
     session_id = gr.State(lambda: uuid.uuid4().hex)
     logging.info(session_id)
@@ -183,7 +179,6 @@ with gr.Blocks(title="Research dissemination assistant") as demo:
 
     pdf_input = gr.File(label="Upload your PDF Document")
     summary_output = gr.Textbox(label="Summary of the PDF", lines=6)
-    summary_state = gr.State()
     reset_button = gr.Button("Reset")
 
     audience_input = gr.Dropdown(
@@ -235,16 +230,16 @@ with gr.Blocks(title="Research dissemination assistant") as demo:
     post_output = gr.Textbox(label="Generated LinkedIn Post", lines=8)
 
     click_event = pdf_input.change(
-        summarize_and_store,
+        process_pdf_and_summarize,
         inputs=[pdf_input, session_id],
-        outputs=[summary_output, summary_state],
+        outputs=[summary_output],
         queue=True,
     )
 
     click_event_post = submit_button.click(
         fn=generate_post_async,
         inputs=[
-            summary_state,
+            summary_output,
             audience_input,
             english_level_input,
             length_input,
