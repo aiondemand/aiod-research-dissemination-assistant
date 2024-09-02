@@ -2,12 +2,13 @@ services:
   gradio-app:
     build:
       context: ./src/gradio
+    command: >
+      --port 7860
+      --log-level debug
     depends_on:
       ollama:
         condition: service_started
     restart: always
-    networks:
-      - app-network
 
   nginx:
     image: nginx:latest
@@ -20,8 +21,6 @@ services:
       gradio-app:
         condition: service_started
     restart: always
-    networks:
-      - app-network
 
   ollama:
     image: ollama/ollama:latest
@@ -29,12 +28,6 @@ services:
       - ollama:/root/.ollama
     tty: true
     restart: unless-stopped
-    networks:
-      - app-network
 
 volumes:
   ollama: {}
-
-networks:
-  app-network:
-    driver: bridge

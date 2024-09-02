@@ -122,7 +122,7 @@ async def generate_post_async(
     )
 
     llm = Ollama(
-        model="llama3",
+        model="llama3.1",
         # TODO: Remove hardcoded url
         base_url="http://ollama:11434",
     )
@@ -171,7 +171,6 @@ async def summarize_and_store(file_content, session_id):
 
 with gr.Blocks() as demo:
     session_id = gr.State(lambda: uuid.uuid4().hex)
-    logging.info(session_id)
 
     gr.HTML(
         """
@@ -279,7 +278,7 @@ with gr.Blocks() as demo:
 
     stop_button = gr.Button("Stop")
 
-app = gr.mount_gradio_app(app, demo, path="/")
+app = gr.mount_gradio_app(app, demo, path="/", allowed_paths=["./"])
 
 # Run the interface
 if __name__ == "__main__":
