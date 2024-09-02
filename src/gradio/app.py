@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import uuid
 
 import pymupdf
 from fastapi import FastAPI
@@ -8,19 +9,16 @@ from summarized_text import summarize_text
 
 import gradio as gr
 
-# This will hold the task for the long-running LLM invoke operation
-llm_task = None
-summary_task = None
+llm_tasks = {}
+summary_tasks = {}
 
-# Setup basic logging
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI()
 
 
-async def process_pdf_and_summarize(file_content):
-    global summary_task
-    logging.info("Starting PDF processing...")
+async def process_pdf_and_summarize(file_content, session_id):
+    logging.info(f"Starting PDF processing for session {session_id}...")
 
     if not (
         file_content and getattr(file_content, "name", "").lower().endswith(".pdf")
@@ -28,26 +26,26 @@ async def process_pdf_and_summarize(file_content):
         logging.error("Uploaded file is not a PDF.")
         return "Error: The uploaded file is not a PDF or no file was uploaded.", None
 
-    pdf_document = pymupdf.open(file_content, filetype="pdf")
-    text = ""
-    for page_number in range(pdf_document.page_count):
-        page = pdf_document.load_page(page_number)
-        text += page.get_text("text")
-    pdf_document.close()
+    else:
+        pdf_document = pymupdf.open(file_content, filetype="pdf")
+        text = ""
+        for page_number in range(pdf_document.page_count):
+            page = pdf_document.load_page(page_number)
+            text += page.get_text("text")
+        pdf_document.close()
 
-    try:
-        loop = asyncio.get_running_loop()
-        summary_task = loop.run_in_executor(None, summarize_text, text)
-        logging.info(summary_task)
-        output_text = await summary_task
-        logging.info(output_text)
-        logging.info("Summarization completed.")
-        return output_text, text
-    except asyncio.CancelledError:
-        logging.warning("Summarization was cancelled.")
-        return "Summarization processing was stopped by the user."
-    finally:
-        summary_task = None
+        try:
+            loop = asyncio.get_running_loop()
+            summary_task = loop.run_in_executor(None, summarize_text, text)
+            summary_tasks[session_id] = summary_task
+            output_text = await summary_task
+            logging.info("Summarization completed.")
+            return output_text, text
+        except asyncio.CancelledError:
+            logging.warning(f"Summarization was cancelled for session {session_id}.")
+            return "Summarization processing was stopped by the user.", None
+        finally:
+            summary_tasks.pop(session_id, None)
 
 
 def prepare_post_text(
@@ -103,8 +101,9 @@ async def generate_post_async(
     question_option,
     paper_url,
     custom_requirements,
+    session_id,
 ):
-    global llm_task
+    global llm_tasks
 
     if not summary:
         return "Summarization is still in progress. Please wait and try again."
@@ -130,33 +129,50 @@ async def generate_post_async(
 
     try:
         loop = asyncio.get_running_loop()
-        # Execute llm.invoke asynchronously
         llm_task = loop.run_in_executor(None, llm.invoke, post_text)
-        generated_post = await llm_task  # Await the result
+        llm_tasks[session_id] = llm_task
+        generated_post = await llm_task
         return generated_post
     except asyncio.CancelledError:
+        logging.warning(f"LLM processing was cancelled for session {session_id}.")
         return "LLM processing was stopped by the user."
     finally:
-        llm_task = None  # Reset the task when done
+        llm_tasks.pop(session_id, None)
 
 
-def stop_llm():
-    global llm_task
-    if llm_task is not None:
-        llm_task.cancel()  # Cancel the task if it is running
+def stop_llm(session_id):
+    global llm_tasks
+    task = llm_tasks.get(session_id)
+    if task is not None:
+        task.cancel()
         return "LLM processing has been stopped."
     return "No LLM processing is currently running."
 
 
-def reset_summarization():
-    global summary_task
-    if summary_task is not None:
-        summary_task.cancel()
-        return "Summarization process not running.", None, None
-    return "Summarization process not running.", None, None
+async def reset_summarization(session_id):
+    global summary_tasks
+    logging.info(summary_tasks)
+    task = summary_tasks.get(session_id)
+    if task is not None:
+        task.cancel()
+        logging.info(f"Task for session {session_id} was cancelled.")
+        return "Summarization process was stopped by the user."
+    else:
+        logging.info(
+            f"No summarization process was found running for session {session_id}."
+        )
+        return "No active summarization process to stop."
+
+
+async def summarize_and_store(file_content, session_id):
+    summary, raw_text = await process_pdf_and_summarize(file_content, session_id)
+    return summary, raw_text
 
 
 with gr.Blocks() as demo:
+    session_id = gr.State(lambda: uuid.uuid4().hex)
+    logging.info(session_id)
+
     gr.HTML(
         """
         <div style="display: flex; align-items: center;">
@@ -168,8 +184,8 @@ with gr.Blocks() as demo:
 
     pdf_input = gr.File(label="Upload your PDF Document")
     summary_output = gr.Textbox(label="Summary of the PDF", lines=6)
-    summary_state = gr.State()  # To store the summary
-    reset_button = gr.Button("Reset")  # Add a reset button
+    summary_state = gr.State()
+    reset_button = gr.Button("Reset")
 
     audience_input = gr.Dropdown(
         [
@@ -219,16 +235,13 @@ with gr.Blocks() as demo:
     stop_button = gr.Button("Stop")
     post_output = gr.Textbox(label="Generated LinkedIn Post", lines=8)
 
-    async def summarize_and_store(file_content):
-        summary, raw_text = await process_pdf_and_summarize(file_content)
-        return summary, raw_text
-
-    # Trigger summarization immediately after PDF upload
-    pdf_input.change(
-        summarize_and_store, inputs=pdf_input, outputs=[summary_output, summary_state]
+    click_event = pdf_input.change(
+        summarize_and_store,
+        inputs=[pdf_input, session_id],
+        outputs=[summary_output, summary_state],
+        queue=True,
     )
 
-    # Generate the post only when the submit button is clicked
     submit_button.click(
         fn=generate_post_async,
         inputs=[
@@ -242,22 +255,31 @@ with gr.Blocks() as demo:
             question_input,
             url_input,
             custom_requirements_input,
+            session_id,
         ],
         outputs=post_output,
         api_name="generate_post",
+        queue=True,
     )
 
-    stop_button.click(fn=stop_llm, inputs=None, outputs=post_output)
+    stop_button.click(
+        fn=lambda session_id: stop_llm(session_id),
+        inputs=[session_id],
+        outputs=post_output,
+        queue=False,
+    )
 
     reset_button.click(
-        reset_summarization,
-        inputs=None,
-        outputs=[summary_output, summary_state, pdf_input],
+        fn=lambda session_id: asyncio.run(reset_summarization(session_id)),
+        inputs=[session_id],
+        outputs=[summary_output],
+        queue=False,
+        cancels=[click_event],
     )
 
+    stop_button = gr.Button("Stop")
 
 app = gr.mount_gradio_app(app, demo, path="/")
-
 
 # Run the interface
 if __name__ == "__main__":
