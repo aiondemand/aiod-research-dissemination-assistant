@@ -31,7 +31,7 @@ def chunk_text(text, max_tokens, overlap=50):
     return chunks
 
 
-def summarize_text(text, max_tokens=512, overlap=50):
+def summarize_text(text, max_tokens=500, overlap=50):
     chunks = chunk_text(text, max_tokens, overlap)
     summaries = []
 
