@@ -17,11 +17,13 @@ logging.basicConfig(level=logging.INFO)
 async def process_pdf_and_summarize(file_content, session_id):
     logging.info(f"Starting PDF processing for session {session_id}...")
 
-    if not file_content or not getattr(file_content, "name", "").lower().endswith(
-        ".pdf"
-    ):
+    if not file_content:
+        logging.error("No file was uploaded.")
+        return "Error: No file was uploaded.", None
+
+    elif not getattr(file_content, "name", "").lower().endswith(".pdf"):
         logging.error("Uploaded file is not a PDF.")
-        return "Error: The uploaded file is not a PDF or no file was uploaded.", None
+        return "Error: The uploaded file is not a PDF.", None
 
     else:
         pdf_document = pymupdf.open(file_content, filetype="pdf")
@@ -119,7 +121,7 @@ async def generate_post_async(
         custom_requirements,
     )
 
-    llm = Ollama(model="llama3")
+    llm = Ollama(model="llama3.1")
 
     try:
         loop = asyncio.get_running_loop()
@@ -149,10 +151,11 @@ async def reset_summarization(session_id):
     global summary_tasks
     logging.info(summary_tasks)
     task = summary_tasks.get(session_id)
-    if task is not None:
-        task.cancel()
-        logging.info(f"Task for session {session_id} was cancelled.")
-        return "Summarization process was stopped by the user."
+    if task:
+        if not task.done():
+            task.cancel()
+            logging.info(f"Summarization task for session {session_id} was cancelled.")
+        summary_tasks.pop(session_id, None)
     else:
         logging.info(
             f"No summarization process was found running for session {session_id}."
@@ -165,7 +168,7 @@ async def summarize_and_store(file_content, session_id):
     return summary, raw_text
 
 
-with gr.Blocks() as demo:
+with gr.Blocks(title="Research dissemination assistant") as demo:
     session_id = gr.State(lambda: uuid.uuid4().hex)
     logging.info(session_id)
 
@@ -276,3 +279,6 @@ with gr.Blocks() as demo:
 
 if __name__ == "__main__":
     demo.launch(allowed_paths=["./"])
+
+# TODO:
+# favicon_path="path-to-logo" as a parameter of demo.launch()
