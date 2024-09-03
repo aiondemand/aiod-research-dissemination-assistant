@@ -1,7 +1,9 @@
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
-tokenizer = AutoTokenizer.from_pretrained("Falconsai/text_summarization")
-model = AutoModelForSeq2SeqLM.from_pretrained("Falconsai/text_summarization")
+from .settings import settings
+
+tokenizer = AutoTokenizer.from_pretrained(settings.summarization_model)
+model = AutoModelForSeq2SeqLM.from_pretrained(settings.summarization_model)
 
 
 def chunk_text(text, max_tokens, overlap=50):

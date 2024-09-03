@@ -35,7 +35,7 @@ This project is a Gradio application that generates social media posts based on 
 3. **Run the application**:
 
     ```bash
-    python app.py
+    python -m app.main
     ```
 
 4. **Access the application**:

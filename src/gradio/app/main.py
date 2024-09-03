@@ -3,15 +3,21 @@ import logging
 import uuid
 
 import pymupdf
+import uvicorn
+from fastapi import FastAPI
 from langchain_community.llms import Ollama
-from summarized_text import summarize_text
 
 import gradio as gr
+
+from .settings import settings
+from .summarized_text import summarize_text
 
 llm_tasks = {}
 summary_tasks = {}
 
 logging.basicConfig(level=logging.INFO)
+
+app = FastAPI()
 
 
 async def process_pdf_and_summarize(file_content, session_id) -> str:
@@ -103,7 +109,6 @@ async def generate_post_async(
     custom_requirements,
     session_id,
 ):
-
     global llm_tasks
 
     if not summary:
@@ -122,7 +127,10 @@ async def generate_post_async(
         custom_requirements,
     )
 
-    llm = Ollama(model="llama3.1")
+    llm = Ollama(
+        model=settings.generation_ollama_model,
+        base_url=settings.ollama_url,
+    )
 
     try:
         loop = asyncio.get_running_loop()
@@ -272,8 +280,11 @@ with gr.Blocks(title="Research dissemination assistant") as demo:
         cancels=[click_event],
     )
 
+app = gr.mount_gradio_app(app, demo, path="/", allowed_paths=["./"])
+
+# Run the interface
 if __name__ == "__main__":
-    demo.launch(allowed_paths=["./"])
+    uvicorn.run(app, port=7860, log_level="debug")
 
 # TODO:
 # favicon_path="path-to-logo" as a parameter of demo.launch()
