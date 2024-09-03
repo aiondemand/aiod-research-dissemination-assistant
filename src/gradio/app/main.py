@@ -3,11 +3,14 @@ import logging
 import uuid
 
 import pymupdf
+import uvicorn
 from fastapi import FastAPI
 from langchain_community.llms import Ollama
-from summarized_text import summarize_text
 
 import gradio as gr
+
+from .settings import settings
+from .summarized_text import summarize_text
 
 llm_tasks = {}
 summary_tasks = {}
@@ -125,9 +128,8 @@ async def generate_post_async(
     )
 
     llm = Ollama(
-        model="llama3.1",
-        # TODO: Remove hardcoded url
-        base_url="http://ollama:11434",
+        model=settings.generation_ollama_model,
+        base_url=settings.ollama_url,
     )
 
     try:
@@ -282,7 +284,7 @@ app = gr.mount_gradio_app(app, demo, path="/", allowed_paths=["./"])
 
 # Run the interface
 if __name__ == "__main__":
-    demo.launch(allowed_paths=["./"])
+    uvicorn.run(app, port=7860, log_level="debug")
 
 # TODO:
 # favicon_path="path-to-logo" as a parameter of demo.launch()
