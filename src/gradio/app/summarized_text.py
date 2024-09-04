@@ -11,7 +11,6 @@ def chunk_text(text, max_tokens, overlap=50):
     chunks = []
     current_chunk = []
     current_count = 0
-    last_overlap_index = 0
 
     for index, word in enumerate(words):
         word_tokens = tokenizer.tokenize(word)
@@ -19,9 +18,8 @@ def chunk_text(text, max_tokens, overlap=50):
 
         if current_count + word_token_count > max_tokens:
             chunks.append(" ".join(current_chunk))
-            current_chunk = words[last_overlap_index:index]
+            current_chunk = words[max(index - overlap, 0) : index - 1]
             current_count = len(tokenizer.tokenize(" ".join(current_chunk)))
-            last_overlap_index = max(index - overlap, 0)
 
         else:
             current_chunk.append(word)
