@@ -60,14 +60,8 @@ async def process_pdf_and_summarize(file_content, session_id) -> str:
     except Exception as e:
         logging.error(f"Failed during processing: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to process PDF: {str(e)}")
-    except asyncio.CancelledError:
-        logging.warning(f"Summarization was cancelled for session {session_id}.")
-        raise HTTPException(
-            status_code=400, detail="Summarization was cancelled"
-        )  # gr.info()
 
 
-# delete input from UI
 def prepare_post_text(
     summary,
     audience,
@@ -126,7 +120,7 @@ async def generate_post_async(
     global llm_tasks
 
     if not summary:
-        raise HTTPException(status_code=400, detail="Summarization not completed")
+        raise HTTPException(status_code=500, detail="Summarization not completed")
     else:
         post_text = prepare_post_text(
             summary,
@@ -153,27 +147,35 @@ async def generate_post_async(
             generated_post = await llm_task
             return generated_post
         except Exception as e:
-            logging.error(f"Failed during processing: {str(e)}")
+            logging.error(f"Failed post generation process: {str(e)}.")
             raise HTTPException(
-                status_code=500, detail=f"Failed to process PDF: {str(e)}"
+                status_code=500, detail="Failed post generation process."
             )
         except asyncio.CancelledError:
-            logging.warning(f"Summarization was cancelled for session {session_id}.")
-            raise HTTPException(status_code=400, detail="Summarization was cancelled")
+            logging.warning(
+                f"The post generation process for session {session_id}  was cancelled."
+            )
+            raise HTTPException(
+                status_code=400, detail="The post generation process was cancelled."
+            )
 
 
 def stop_llm(session_id):
     global llm_tasks
     task = llm_tasks.get(session_id)
     if task is not None:
-        logging.info(f"Summarization task for session {session_id} was cancelled.")
+        logging.info(
+            f"The post generation process for session {session_id} was cancelled."
+        )
         summary_tasks.pop(session_id, None)
-        raise HTTPException(status_code=400, detail="Summarization was cancelled")
+        raise HTTPException(
+            status_code=400, detail="The post generation process was cancelled"
+        )
     else:
         logging.info(
-            f"No summarization process was found running for session {session_id}."
+            f"No post generation process was found running for session {session_id}."
         )
-        raise HTTPException(status_code=400, detail="No summarization running")
+        raise HTTPException(status_code=400, detail="No post generation running")
 
 
 async def reset_summarization(session_id):
@@ -184,12 +186,12 @@ async def reset_summarization(session_id):
     if task is not None:
         logging.info(f"Summarization task for session {session_id} was cancelled.")
         summary_tasks.pop(session_id, None)
-        raise HTTPException(status_code=400, detail="Summarization was cancelled")
+        raise HTTPException(status_code=300, detail="Summarization was cancelled")
     else:
         logging.info(
             f"No summarization process was found running for session {session_id}."
         )
-        raise HTTPException(status_code=400, detail="No summarization running")
+        raise HTTPException(status_code=300, detail="No summarization running")
 
 
 with gr.Blocks(title="Research dissemination assistant") as demo:
@@ -200,7 +202,7 @@ with gr.Blocks(title="Research dissemination assistant") as demo:
         """
         <div style="display: flex; align-items: center;">
             <img src='file=Main_logo_RGB_colors.png' style='height: 100px; width: auto; alt='AI4EUROPE_logo'; margin-right: 20px;'/>
-            <h1 style="margin: 0; font-size: 24px;">Generate social media post</h1>
+            <h1 style="margin: 0; font-size: 24px;">QuickRePost</h1>
         </div>
         """
     )
@@ -231,13 +233,14 @@ with gr.Blocks(title="Research dissemination assistant") as demo:
             label="Select your audience:",
         )
         english_level_input = gr.Dropdown(
-            ["Beginner", "Intermediate"], label="Select the English level:"
+            ["", "Beginner", "Intermediate"], label="Select the English level:"
         )
         length_input = gr.Dropdown(
-            ["Long", "Short", "Very short"], label="Select the length of the post:"
+            ["", "Long", "Short", "Very short"], label="Select the length of the post:"
         )
         hashtag_input = gr.Dropdown(
             [
+                "",
                 "No use hashtags",
                 "Use hashtags",
                 "Use 3 hashtags that are already existing, popular and relevant",
@@ -245,11 +248,12 @@ with gr.Blocks(title="Research dissemination assistant") as demo:
             label="Hashtag usage:",
         )
         perspective_input = gr.Dropdown(
-            ["First person singular", "First person plural", "Second person"],
+            ["", "First person singular", "First person plural", "Second person"],
             label="Choose the narrative perspective:",
         )
         emoji_input = gr.Dropdown(
             [
+                "",
                 "Use emoticons",
                 "Use emoticons instead of bullet points",
                 "Do not use emoticons",
@@ -264,7 +268,7 @@ with gr.Blocks(title="Research dissemination assistant") as demo:
 
         submit_button = gr.Button("Generate post")
         stop_button = gr.Button("Stop")
-        post_output = gr.Textbox(label="Generated LinkedIn Post", lines=8)
+        post_output = gr.Markdown(label="Generated LinkedIn Post")
 
     click_event = start_summarization_button.click(
         fn=process_pdf_and_summarize,
