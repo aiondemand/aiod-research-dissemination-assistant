@@ -4,7 +4,7 @@ import uuid
 
 import pymupdf
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, status
 from langchain_community.llms import Ollama
 
 import gradio as gr
@@ -22,9 +22,14 @@ app = FastAPI()
 
 def validate_pdf_file(file_content):
     if not file_content:
-        raise HTTPException(status_code=400, detail="No file was uploaded.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No file was uploaded."
+        )
     if not getattr(file_content, "name", "").lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Uploaded file is not a PDF.")
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Uploaded file is not a PDF.",
+        )
 
 
 def extract_text_from_pdf(file_content):
@@ -38,7 +43,8 @@ def extract_text_from_pdf(file_content):
         return text
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Error processing the PDF file: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error processing the PDF file: {str(e)}",
         )
 
 
@@ -59,7 +65,10 @@ async def process_pdf_and_summarize(file_content, session_id) -> str:
         return output_text
     except Exception as e:
         logging.error(f"Failed during processing: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to process PDF: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to process PDF: {str(e)}",
+        )
 
 
 def prepare_post_text(
@@ -120,7 +129,10 @@ async def generate_post_async(
     global llm_tasks
 
     if not summary:
-        raise HTTPException(status_code=500, detail="Summarization not completed")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Summarization not completed",
+        )
     else:
         post_text = prepare_post_text(
             summary,
@@ -149,54 +161,47 @@ async def generate_post_async(
         except Exception as e:
             logging.error(f"Failed post generation process: {str(e)}.")
             raise HTTPException(
-                status_code=500, detail="Failed post generation process."
-            )
-        except asyncio.CancelledError:
-            logging.warning(
-                f"The post generation process for session {session_id}  was cancelled."
-            )
-            raise HTTPException(
-                status_code=400, detail="The post generation process was cancelled."
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed post generation process.",
             )
 
 
 def stop_llm(session_id):
     global llm_tasks
     task = llm_tasks.get(session_id)
+
     if task is not None:
+        llm_tasks.pop(session_id, None)
         logging.info(
             f"The post generation process for session {session_id} was cancelled."
-        )
-        summary_tasks.pop(session_id, None)
-        raise HTTPException(
-            status_code=400, detail="The post generation process was cancelled"
         )
     else:
         logging.info(
             f"No post generation process was found running for session {session_id}."
         )
-        raise HTTPException(status_code=400, detail="No post generation running")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No post generation running"
+        )
 
 
 async def reset_summarization(session_id):
     global summary_tasks
-    logging.info(summary_tasks)
     task = summary_tasks.get(session_id)
 
     if task is not None:
-        logging.info(f"Summarization task for session {session_id} was cancelled.")
         summary_tasks.pop(session_id, None)
-        raise HTTPException(status_code=300, detail="Summarization was cancelled")
+        logging.info(f"Summarization task for session {session_id} was cancelled.")
     else:
         logging.info(
             f"No summarization process was found running for session {session_id}."
         )
-        raise HTTPException(status_code=300, detail="No summarization running")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No summarization running"
+        )
 
 
 with gr.Blocks(title="Research dissemination assistant") as demo:
     session_id = gr.State(lambda: uuid.uuid4().hex)
-    logging.info(session_id)
 
     gr.HTML(
         """
