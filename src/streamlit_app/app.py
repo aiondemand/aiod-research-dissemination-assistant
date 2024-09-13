@@ -6,7 +6,7 @@ from langchain_community.llms import Ollama
 
 st.set_page_config(layout="wide")
 
-logo_path = "../gradio/Main_logo_RGB_colors.png"
+logo_path = "../gradio/static/Main_logo_RGB_colors.png"
 st.image(logo_path, width=150)
 
 st.title("Generate LinkedIn Post")

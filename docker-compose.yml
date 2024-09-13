@@ -2,6 +2,8 @@ services:
   gradio-app:
     build:
       context: ./src/gradio
+    env_file:
+      - ./src/gradio/.env
     command: >
       --port 7860
       --log-level debug

@@ -9,3 +9,5 @@ __pycache__/
 .idea/
 config_files/__pycache__/
 streamlit_app/__pycache__/
+
+.env

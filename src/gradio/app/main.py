@@ -1,203 +1,88 @@
-import asyncio
 import logging
 import uuid
 
-import pymupdf
 import uvicorn
-from fastapi import FastAPI, HTTPException, status
-from langchain_community.llms import Ollama
+from fastapi import Depends, FastAPI, Request
+from fastapi.responses import RedirectResponse
+from keycloak import KeycloakAuthenticationError
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.staticfiles import StaticFiles
 
 import gradio as gr
 
+from .auth import get_user, keycloak_openid
+from .pipeline import (
+    generate_post_async,
+    process_pdf_and_summarize,
+    reset_summarization,
+    stop_llm,
+)
 from .settings import settings
-from .summarized_text import summarize_text
-
-llm_tasks = {}
-summary_tasks = {}
 
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI()
 
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-def validate_pdf_file(file_content):
-    if not file_content:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="No file was uploaded."
-        )
-    if not getattr(file_content, "name", "").lower().endswith(".pdf"):
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="Uploaded file is not a PDF.",
-        )
+app.add_middleware(
+    SessionMiddleware, secret_key=settings.aiod_keycloak.CLIENT_SECRET  # noqa
+)
 
 
-def extract_text_from_pdf(file_content):
-    try:
-        pdf_document = pymupdf.open(file_content, filetype="pdf")
-        text = ""
-        for page_number in range(pdf_document.page_count):
-            page = pdf_document.load_page(page_number)
-            text += page.get_text("text")
-        pdf_document.close()
-        return text
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error processing the PDF file: {str(e)}",
-        )
+@app.get("/")
+def home(user: dict = Depends(get_user)):
+    if user:
+        return RedirectResponse(url="/app")
+    else:
+        return RedirectResponse(url="/login-page")
 
 
-async def process_pdf_and_summarize(file_content, session_id) -> str:
-    global summary_tasks
-    logging.info(f"Starting PDF processing for session {session_id}...")
+@app.get("/login")
+async def login(request: Request):
+    redirect_uri = request.url_for("auth")
+    auth_url = keycloak_openid.auth_url(redirect_uri)
+    return RedirectResponse(url=auth_url)
 
-    validate_pdf_file(file_content)  # validation input
 
-    text = extract_text_from_pdf(file_content)  # extract text from pdf
+@app.get("/auth")
+async def auth(request: Request):
+    code = request.query_params.get("code")
+    redirect_uri = request.url_for("auth")
 
     try:
-        loop = asyncio.get_running_loop()
-        task = loop.run_in_executor(None, summarize_text, text)
-        summary_tasks[session_id] = task
-        output_text = await task
-        logging.info("Summarization completed.")
-        return output_text
-    except Exception as e:
-        logging.error(f"Failed during processing: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to process PDF: {str(e)}",
+        token = keycloak_openid.token(
+            grant_type="authorization_code",
+            code=code,
+            redirect_uri=redirect_uri,
         )
+    except KeycloakAuthenticationError:
+        return RedirectResponse(url="/")
+
+    request.session["refresh_token"] = token.get("refresh_token")
+    request.session["user"] = keycloak_openid.introspect(token.get("access_token"))
+
+    return RedirectResponse(url="/app")
 
 
-def prepare_post_text(
-    summary,
-    audience,
-    english_level,
-    length,
-    hashtag_preference,
-    perspective,
-    emoji_usage,
-    question_option,
-    paper_url,
-    custom_requirements,
-):
-    post_text = (
-        "Can you create a LinkedIn post, summarize the text: "
-        + summary
-        + "; In the post use these parameters:"
+@app.get("/logout")
+async def logout(request: Request):
+    keycloak_openid.logout(request.session["refresh_token"])
+    request.session.pop("user", None)
+
+    return RedirectResponse(url="/")
+
+
+with gr.Blocks() as login_demo:
+    gr.HTML(
+        """
+        <div style="display: flex; align-items: center;">
+            <img src='/static/Main_logo_RGB_colors.png' style='height: 100px; width: auto; alt='AI4EUROPE_logo'; margin-right: 20px;'/>
+            <h1 style="margin: 0; font-size: 24px;">QuickRePost</h1>
+        </div>
+        """
     )
-
-    if english_level:
-        post_text += f" Use {english_level} English."
-    if length:
-        post_text += f" Length of post: {length}."
-    if emoji_usage:
-        post_text += f" {emoji_usage}."
-    if audience:
-        post_text += f" Targeted at {audience}."
-    if hashtag_preference:
-        post_text += f" {hashtag_preference}."
-    if perspective:
-        post_text += f" Written from a {perspective} perspective."
-    if question_option:
-        post_text += f" {question_option}"
-    if paper_url:
-        post_text += f" URL to original paper: {paper_url}"
-    if custom_requirements:
-        post_text += f" Custom requirements: {custom_requirements}"
-
-    post_text += "\n Skip introduction about audience, do not greet audience, finish with call to action"
-
-    return post_text
-
-
-async def generate_post_async(
-    summary,
-    audience,
-    english_level,
-    length,
-    hashtag_preference,
-    perspective,
-    emoji_usage,
-    question_option,
-    paper_url,
-    custom_requirements,
-    session_id,
-):
-    global llm_tasks
-
-    if not summary:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Summarization not completed",
-        )
-    else:
-        post_text = prepare_post_text(
-            summary,
-            audience,
-            english_level,
-            length,
-            hashtag_preference,
-            perspective,
-            emoji_usage,
-            question_option,
-            paper_url,
-            custom_requirements,
-        )
-
-        llm = Ollama(
-            model=settings.generation_ollama_model,
-            base_url=settings.ollama_url,
-        )
-
-        try:
-            loop = asyncio.get_running_loop()
-            llm_task = loop.run_in_executor(None, llm.invoke, post_text)
-            llm_tasks[session_id] = llm_task
-            generated_post = await llm_task
-            return generated_post
-        except Exception as e:
-            logging.error(f"Failed post generation process: {str(e)}.")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed post generation process.",
-            )
-
-
-def stop_llm(session_id):
-    global llm_tasks
-    task = llm_tasks.get(session_id)
-
-    if task is not None:
-        llm_tasks.pop(session_id, None)
-        logging.info(
-            f"The post generation process for session {session_id} was cancelled."
-        )
-    else:
-        logging.info(
-            f"No post generation process was found running for session {session_id}."
-        )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="No post generation running"
-        )
-
-
-async def reset_summarization(session_id):
-    global summary_tasks
-    task = summary_tasks.get(session_id)
-
-    if task is not None:
-        summary_tasks.pop(session_id, None)
-        logging.info(f"Summarization task for session {session_id} was cancelled.")
-    else:
-        logging.info(
-            f"No summarization process was found running for session {session_id}."
-        )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="No summarization running"
-        )
+    gr.Button("Login", link="/login")
 
 
 with gr.Blocks(title="Research dissemination assistant") as demo:
@@ -206,13 +91,23 @@ with gr.Blocks(title="Research dissemination assistant") as demo:
     gr.HTML(
         """
         <div style="display: flex; align-items: center;">
-            <img src='file=Main_logo_RGB_colors.png' style='height: 100px; width: auto; alt='AI4EUROPE_logo'; margin-right: 20px;'/>
+            <img src='/static/Main_logo_RGB_colors.png' style='height: 100px; width: auto; alt='AI4EUROPE_logo'; margin-right: 20px;'/>
             <h1 style="margin: 0; font-size: 24px;">QuickRePost</h1>
         </div>
         """
     )
+    auth_part = gr.Group()
     first_part = gr.Group()
     second_part = gr.Group()
+
+    with auth_part:
+
+        def greet(request: gr.Request):
+            return f"## Welcome to QuickRePost, {request.username}"
+
+        m = gr.Markdown("## Welcome to QuickRePost")
+        gr.Button("Logout", link="/logout")
+        demo.load(greet, None, m)
 
     with first_part:
         gr.Markdown("## Document Summarization")
@@ -303,7 +198,7 @@ with gr.Blocks(title="Research dissemination assistant") as demo:
     )
 
     stop_button.click(
-        fn=lambda session_id: stop_llm(session_id),
+        fn=stop_llm,
         inputs=[session_id],
         outputs=post_output,
         queue=False,
@@ -326,7 +221,11 @@ with gr.Blocks(title="Research dissemination assistant") as demo:
         cancels=[click_event],
     )
 
-app = gr.mount_gradio_app(app, demo, path="/", allowed_paths=["./"])
+
+app = gr.mount_gradio_app(app, login_demo, path="/login-page", root_path="/login-page")
+app = gr.mount_gradio_app(
+    app, demo, path="/app", auth_dependency=get_user, root_path="/app"
+)
 
 # Run the interface
 if __name__ == "__main__":
