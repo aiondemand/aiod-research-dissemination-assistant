@@ -57,7 +57,7 @@ async def auth(request: Request):
             redirect_uri=redirect_uri,
         )
     except KeycloakAuthenticationError:
-        return RedirectResponse(url="/")
+        return RedirectResponse(url=request.url_for("home"))
 
     request.session["refresh_token"] = token.get("refresh_token")
     request.session["user"] = keycloak_openid.introspect(token.get("access_token"))
@@ -70,7 +70,7 @@ async def logout(request: Request):
     keycloak_openid.logout(request.session["refresh_token"])
     request.session.pop("user", None)
 
-    return RedirectResponse(url="/")
+    return RedirectResponse(url=request.url_for("home"))
 
 
 with gr.Blocks() as login_demo:
