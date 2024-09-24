@@ -3,19 +3,17 @@ import uuid
 import uvicorn
 from fastapi import FastAPI
 
+import gradio as gr
+
 from .utils import (
     detailed_feedback,
     generate_post_async,
-    gr,
     logging,
     process_pdf_and_summarize,
     reset_summarization,
     simple_feedback,
     stop_llm,
 )
-
-llm_tasks = {}
-summary_tasks = {}
 
 logging.basicConfig(level=logging.INFO)
 
@@ -43,7 +41,7 @@ with gr.Blocks(title="Research dissemination assistant") as demo:
 
     first_part = gr.Group()
     second_part = gr.Group()
-    feeback_part = gr.Group()
+    feedback_part = gr.Group()
 
     with first_part:
         gr.Markdown("## Document Summarization")
@@ -106,7 +104,7 @@ with gr.Blocks(title="Research dissemination assistant") as demo:
         stop_button = gr.Button("Stop")
         post_output = gr.Markdown(label="Generated LinkedIn Post")
 
-    with feeback_part:
+    with feedback_part:
         gr.Markdown("## Feedback")
         with gr.Row():
             like_button = gr.Button("👍")
@@ -123,19 +121,23 @@ with gr.Blocks(title="Research dissemination assistant") as demo:
         )
 
     like_button.click(
-        fn=lambda session_id: simple_feedback("like", session_id),
+        fn=lambda session_id: simple_feedback("like", session_id, gr),
         inputs=[session_id],
         outputs=[feedback_text, submit_feedback_button],
     )
 
     dislike_button.click(
-        fn=lambda session_id: simple_feedback("dislike", session_id),
+        fn=lambda session_id: simple_feedback("dislike", session_id, gr),
         inputs=[session_id],
         outputs=[feedback_text, submit_feedback_button],
     )
 
     submit_feedback_button.click(
-        fn=detailed_feedback, inputs=[feedback_text, session_id], outputs=[]
+        fn=lambda feedback_text, session_id: detailed_feedback(
+            feedback_text, session_id, gr
+        ),
+        inputs=[feedback_text, session_id],
+        outputs=[],
     )
 
     click_event = start_summarization_button.click(

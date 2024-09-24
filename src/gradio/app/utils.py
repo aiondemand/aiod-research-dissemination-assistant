@@ -7,10 +7,11 @@ import pymupdf
 from fastapi import HTTPException, status
 from langchain_community.llms import Ollama
 
-import gradio as gr
-
 from .settings import settings
 from .summarized_text import summarize_text
+
+llm_tasks = {}
+summary_tasks = {}
 
 
 def validate_pdf_file(file_content):
@@ -193,20 +194,10 @@ async def reset_summarization(session_id):
         )
 
 
-def simple_feedback(feedback, session_id):
-    feedback_file = "simple_feedback.csv"
-    session_exists = False
+def simple_feedback(feedback, session_id, gr):
+    feedback_file = settings.feedback_file_simple
 
-    if os.path.exists(feedback_file):
-        with open(feedback_file, mode="r", newline="") as file:
-            reader = csv.reader(file)
-            next(reader, None)
-            for row in reader:
-                if row[0] == session_id:
-                    session_exists = True
-                    break
-
-    if not session_exists:
+    if not feedback_already_submitted(session_id, feedback_file):
         with open(feedback_file, mode="a", newline="") as file:
             writer = csv.writer(file)
             if file.tell() == 0:
@@ -221,20 +212,10 @@ def simple_feedback(feedback, session_id):
     return gr.update(visible=True), gr.update(visible=True)
 
 
-def detailed_feedback(feedback, session_id):
-    feedback_file = "detailed_feedback.csv"
-    session_exists = False
+def detailed_feedback(feedback, session_id, gr):
+    feedback_file = settings.feedback_file_detailed
 
-    if os.path.exists(feedback_file):
-        with open(feedback_file, mode="r", newline="") as file:
-            reader = csv.reader(file)
-            next(reader, None)
-            for row in reader:
-                if row[0] == session_id:
-                    session_exists = True
-                    break
-
-    if not session_exists:
+    if not feedback_already_submitted(session_id, feedback_file):
         with open(feedback_file, mode="a", newline="") as file:
             writer = csv.writer(file)
             if file.tell() == 0:
@@ -245,3 +226,14 @@ def detailed_feedback(feedback, session_id):
     else:
         gr.Info("Detailed feedback already submitted for this session.")
         logging.info("Detailed feedback already submitted for this session.")
+
+
+def feedback_already_submitted(session_id: str, feedback_filename: str) -> bool:
+    if os.path.exists(feedback_filename):
+        with open(feedback_filename, mode="r", newline="") as file:
+            reader = csv.reader(file)
+            next(reader, None)
+            for row in reader:
+                if row[0] == session_id:
+                    return True
+    return False
