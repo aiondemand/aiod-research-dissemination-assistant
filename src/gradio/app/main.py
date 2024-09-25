@@ -126,8 +126,6 @@ with gr.Blocks(
             "Submit Feedback", visible=False, interactive=True
         )
 
-        dark_mode_btn = gr.Button("Dark Mode", variant="primary", size="sm")
-
     like_button.click(
         fn=lambda session_id: simple_feedback("like", session_id, gr),
         inputs=[session_id],
