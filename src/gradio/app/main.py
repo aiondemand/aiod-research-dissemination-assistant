@@ -19,14 +19,20 @@ logging.basicConfig(level=logging.INFO)
 
 app = FastAPI()
 
-with gr.Blocks(title="Research dissemination assistant") as demo:
+js = """() => {
+    document.querySelectorAll('.dark').forEach(el => el.classList.remove('dark'));
+}"""
+
+with gr.Blocks(
+    title="Research dissemination assistant", theme=gr.themes.Default(), js=js
+) as demo:
     session_id = gr.State(lambda: uuid.uuid4().hex)
 
     gr.HTML(
         """
-        <div style="display: flex; align-items: center;">
-            <img src='file=Main_logo_RGB_colors.png' style='height: 100px; width: auto; alt='AI4EUROPE_logo'; margin-right: 20px;'/>
-            <h1 style="margin: 0; font-size: 24px;">QuickRePost</h1>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <img src='file=Quickrepost_logo.png' style='height: 150px; width: auto; alt="QuickRePost_logo"; margin-right: 20px;'/>
+            <img src='file=Main_logo_RGB_colors.png' style='height: 150px; width: auto; alt="AI4EUROPE_logo"; margin-left: 20px;'/>
         </div>
         """
     )
@@ -119,6 +125,8 @@ with gr.Blocks(title="Research dissemination assistant") as demo:
         submit_feedback_button = gr.Button(
             "Submit Feedback", visible=False, interactive=True
         )
+
+        dark_mode_btn = gr.Button("Dark Mode", variant="primary", size="sm")
 
     like_button.click(
         fn=lambda session_id: simple_feedback("like", session_id, gr),
