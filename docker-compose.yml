@@ -7,6 +7,12 @@ services:
       --log-level debug
     environment:
       OLLAMA_URL: http://ollama:11434
+      FEEDBACK_FILE_SIMPLE: /data/feedback_simple.csv
+      FEEDBACK_FILE_DETAILED: /data/feedback_detailed.csv
+    volumes:
+      - type: bind
+        source: ./feedback_data
+        target: /data
     depends_on:
       ollama:
         condition: service_started
