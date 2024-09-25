@@ -2,8 +2,10 @@ import asyncio
 import csv
 import logging
 import os
+from datetime import datetime
 
 import pymupdf
+import pytz
 from fastapi import HTTPException, status
 from langchain_community.llms import Ollama
 
@@ -196,13 +198,15 @@ async def reset_summarization(session_id):
 
 def simple_feedback(feedback, session_id, gr):
     feedback_file = settings.feedback_file_simple
+    timezone = pytz.timezone("Europe/Bratislava")
+    current_time = datetime.now(timezone).strftime("%Y-%m-%d %H:%M:%S")
 
     if not feedback_already_submitted(session_id, feedback_file):
         with open(feedback_file, mode="a", newline="") as file:
             writer = csv.writer(file)
             if file.tell() == 0:
-                writer.writerow(["session_id", "feedback"])
-            writer.writerow([session_id, feedback])
+                writer.writerow(["session_id", "feedback", "timestamp"])
+            writer.writerow([session_id, feedback, current_time])
         logging.info("Thank you for your feedback!")
         gr.Info("Thank you for your feedback!")
     else:
@@ -214,13 +218,15 @@ def simple_feedback(feedback, session_id, gr):
 
 def detailed_feedback(feedback, session_id, gr):
     feedback_file = settings.feedback_file_detailed
+    timezone = pytz.timezone("Europe/Bratislava")
+    current_time = datetime.now(timezone).strftime("%Y-%m-%d %H:%M:%S")
 
     if not feedback_already_submitted(session_id, feedback_file):
         with open(feedback_file, mode="a", newline="") as file:
             writer = csv.writer(file)
             if file.tell() == 0:
-                writer.writerow(["session_id", "feedback"])
-            writer.writerow([session_id, feedback])
+                writer.writerow(["session_id", "feedback", "timestamp"])
+            writer.writerow([session_id, feedback, current_time])
         logging.info("Thank you for your detailed feedback!")
         gr.Info("Thank you for your detailed feedback!")
     else:
